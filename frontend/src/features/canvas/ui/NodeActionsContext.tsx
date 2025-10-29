@@ -1,8 +1,12 @@
 import { createContext, useContext } from 'react';
 
 type UpdateNodeData = (nodeId: string, patch: Record<string, unknown>) => void;
+type GetIncomingData = (nodeId: string, targetHandleId?: string) => Record<string, unknown> | undefined;
 
-const NodeActionsContext = createContext<{ updateNodeData: UpdateNodeData } | null>(null);
+const NodeActionsContext = createContext<{
+  updateNodeData: UpdateNodeData;
+  getIncomingData: GetIncomingData;
+} | null>(null);
 
 export const NodeActionsProvider = NodeActionsContext.Provider;
 

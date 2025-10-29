@@ -1,9 +1,15 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { useNodeActions } from '../../../features/canvas/ui/NodeActionsContext';
 
-export const OllamaNode = ({ data }: NodeProps) => {
+export const OllamaNode = ({ id, data }: NodeProps) => {
+  const { getIncomingData } = useNodeActions();
   const label: string = (data as any)?.label ?? 'Ollama Mock';
-  const model: string = (data as any)?.model ?? 'llama3.2';
+  const selfModel: string = (data as any)?.model ?? 'llama3.2';
   const temperature: number = (data as any)?.temperature ?? 0.7;
+  // Read config from connected Settings node via 'config' handle, override own defaults
+  const config = (getIncomingData(id as string, 'config') as any) || {};
+  const model: string = config.model ?? selfModel;
+  const url: string | undefined = config.url;
 
   return (
     <div
@@ -29,6 +35,7 @@ export const OllamaNode = ({ data }: NodeProps) => {
       </div>
       <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>{label}</div>
       <div style={{ fontSize: 12, color: '#374151' }}>
+        {url && <div><strong>URL:</strong> {url}</div>}
         <div><strong>Model:</strong> {model}</div>
         <div><strong>Temp:</strong> {temperature}</div>
         <div style={{ marginTop: 6, fontStyle: 'italic', color: '#6b7280' }}>

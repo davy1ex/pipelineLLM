@@ -50,9 +50,17 @@ export const CanvasFrame = () => {
     setNodes(nodes.map((n) => (n.id === nodeId ? { ...n, data: { ...(n.data as any), ...patch } } : n)));
   };
 
+  const getIncomingData = (nodeId: string, targetHandleId?: string): Record<string, unknown> | undefined => {
+    // find first incoming edge that matches target node and optional handle id
+    const incoming = edges.find((e) => e.target === nodeId && (targetHandleId ? e.targetHandle === targetHandleId : true));
+    if (!incoming) return undefined;
+    const src = nodes.find((n) => n.id === incoming.source);
+    return (src?.data as any) as Record<string, unknown> | undefined;
+  };
+
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
-      <NodeActionsProvider value={{ updateNodeData }}>
+      <NodeActionsProvider value={{ updateNodeData, getIncomingData }}>
         <ReactFlow
         nodes={nodes}
         edges={edges}
