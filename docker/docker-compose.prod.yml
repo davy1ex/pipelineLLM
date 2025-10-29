@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ../frontend
+      target: build
+    container_name: frontend_build
+    env_file:
+      - ../frontend/.env
+    volumes:
+      - frontend-build:/app/dist
+
+  backend:
+    build:
+      context: ../backend
+    container_name: backend_prod
+    env_file:
+      - ../backend/.env
+    command: gunicorn --bind 0.0.0.0:5000 --workers ${GUNICORN_WORKERS:-4} --timeout ${GUNICORN_TIMEOUT:-60} server:app
+    networks:
+      - app-network
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: ./nginx
+    container_name: nginx_prod
+    volumes:
+      - ./nginx/nginx.prod.conf:/etc/nginx/conf.d/default.conf:ro
+      - frontend-build:/usr/share/nginx/html:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - app-network
+    restart: unless-stopped
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  frontend-build:
+
