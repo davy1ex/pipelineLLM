@@ -11,7 +11,6 @@ import {
 import '@xyflow/react/dist/style.css';
 import { useWorkflowStore } from '../model';
 import { TextInputNode, OllamaNode, SettingsNode, OutputNode } from '../../../entities/nodes';
-import { NodeActionsProvider } from './NodeActionsContext';
 
 export const CanvasFrame = () => {
   const nodes = useWorkflowStore((state) => state.nodes);
@@ -45,23 +44,9 @@ export const CanvasFrame = () => {
     output: OutputNode,
   };
 
-  const setNodes = useWorkflowStore((s) => s.setNodes);
-  const updateNodeData = (nodeId: string, patch: Record<string, unknown>) => {
-    setNodes(nodes.map((n) => (n.id === nodeId ? { ...n, data: { ...(n.data as any), ...patch } } : n)));
-  };
-
-  const getIncomingData = (nodeId: string, targetHandleId?: string): Record<string, unknown> | undefined => {
-    // find first incoming edge that matches target node and optional handle id
-    const incoming = edges.find((e) => e.target === nodeId && (targetHandleId ? e.targetHandle === targetHandleId : true));
-    if (!incoming) return undefined;
-    const src = nodes.find((n) => n.id === incoming.source);
-    return (src?.data as any) as Record<string, unknown> | undefined;
-  };
-
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
-      <NodeActionsProvider value={{ updateNodeData, getIncomingData }}>
-        <ReactFlow
+      <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
@@ -69,12 +54,11 @@ export const CanvasFrame = () => {
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         fitView
-        >
-          <Controls />
-          <MiniMap />
-          <Background gap={12} size={1} />
-        </ReactFlow>
-      </NodeActionsProvider>
+      >
+        <Controls />
+        <MiniMap />
+        <Background gap={12} size={1} />
+      </ReactFlow>
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { useNodeActions } from '../../../features/canvas/ui/NodeActionsContext';
+import { HandleLabel } from '../../../shared/ui/HandleLabel';
 
-export const OllamaNode = ({ id, data }: NodeProps) => {
+export const OllamaNode = ({ id, data, type }: NodeProps) => {
   const { getIncomingData } = useNodeActions();
   const label: string = (data as any)?.label ?? 'Ollama Mock';
   const selfModel: string = (data as any)?.model ?? 'llama3.2';
@@ -18,6 +19,7 @@ export const OllamaNode = ({ id, data }: NodeProps) => {
   return (
     <div
       style={{
+        width: 'auto',
         padding: '10px 14px',
         background: 'white',
         border: '1px solid #e5e7eb',
@@ -25,18 +27,17 @@ export const OllamaNode = ({ id, data }: NodeProps) => {
         boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
         minWidth: 180,
         position: 'relative',
+        boxSizing: 'border-box',
       }}
     >
       {/* main input (prompt) */}
       <Handle type="target" position={Position.Left} style={{ top: '30%' }} />
-      <div style={{ position: 'absolute', left: -6, top: '30%', transform: 'translate(-100%, -50%)', fontSize: 10, color: '#6b7280' }}>
-        prompt
-      </div>
+      <HandleLabel nodeType={type || 'ollama'} handleId="prompt" handleType="input" position="left" verticalPosition="30%" />
+      
       {/* config input from Settings node */}
       <Handle id="config" type="target" position={Position.Left} style={{ top: '70%' }} />
-      <div style={{ position: 'absolute', left: -6, top: '70%', transform: 'translate(-100%, -50%)', fontSize: 10, color: '#6b7280' }}>
-        config
-      </div>
+      <HandleLabel nodeType={type || 'ollama'} handleId="config" handleType="input" position="left" verticalPosition="70%" />
+      
       <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>{label}</div>
       <div style={{ fontSize: 12, color: '#374151' }}>
         {url && <div><strong>URL:</strong> {url}</div>}
@@ -52,9 +53,7 @@ export const OllamaNode = ({ id, data }: NodeProps) => {
         </div>
       </div>
       <Handle type="source" position={Position.Right} />
-      <div style={{ position: 'absolute', right: -6, top: '50%', transform: 'translate(100%, -50%)', fontSize: 10, color: '#6b7280' }}>
-        output
-      </div>
+      <HandleLabel nodeType={type || 'ollama'} handleId="output" handleType="output" position="right" />
     </div>
   );
 };

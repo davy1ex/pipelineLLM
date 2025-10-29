@@ -1,7 +1,8 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { useNodeActions } from '../../../features/canvas/ui/NodeActionsContext';
+import { HandleLabel } from '../../../shared/ui/HandleLabel';
 
-export const TextInputNode = ({ id, data }: NodeProps) => {
+export const TextInputNode = ({ id, data, type }: NodeProps) => {
   const { updateNodeData } = useNodeActions();
 
   const value: string = (data as any)?.value ?? '';
@@ -12,6 +13,7 @@ export const TextInputNode = ({ id, data }: NodeProps) => {
   return (
     <div
       style={{
+        width: 'auto',
         padding: '10px 14px',
         background: 'white',
         border: '1px solid #e5e7eb',
@@ -19,6 +21,7 @@ export const TextInputNode = ({ id, data }: NodeProps) => {
         boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
         minWidth: 220,
         position: 'relative',
+        boxSizing: 'border-box',
       }}
     >
       <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>{label}</div>
@@ -27,19 +30,19 @@ export const TextInputNode = ({ id, data }: NodeProps) => {
         onChange={(e) => updateValue(e.target.value)}
         placeholder="Enter text..."
         style={{
-          width: 200,
+          width: '100%',
+          maxWidth: 200,
           height: 70,
           fontSize: 12,
           padding: 8,
           border: '1px solid #e5e7eb',
           borderRadius: 6,
           resize: 'vertical',
+          boxSizing: 'border-box',
         }}
       />
       <Handle type="source" position={Position.Right} />
-      <div style={{ position: 'absolute', right: -6, top: '50%', transform: 'translate(100%, -50%)', fontSize: 10, color: '#6b7280' }}>
-        output
-      </div>
+      <HandleLabel nodeType={type || 'textInput'} handleId="output" handleType="output" position="right" />
     </div>
   );
 };

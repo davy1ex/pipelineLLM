@@ -1,7 +1,8 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { useNodeActions } from '../../../features/canvas/ui/NodeActionsContext';
+import { HandleLabel } from '../../../shared/ui/HandleLabel';
 
-export const SettingsNode = ({ id, data }: NodeProps) => {
+export const SettingsNode = ({ id, data, type }: NodeProps) => {
   const { updateNodeData } = useNodeActions();
 
   const label: string = (data as any)?.label ?? 'Settings';
@@ -13,6 +14,7 @@ export const SettingsNode = ({ id, data }: NodeProps) => {
   return (
     <div
       style={{
+        width: 'auto',
         padding: '12px 14px',
         background: 'white',
         border: '1px solid #e5e7eb',
@@ -20,6 +22,7 @@ export const SettingsNode = ({ id, data }: NodeProps) => {
         boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
         minWidth: 240,
         position: 'relative',
+        boxSizing: 'border-box',
       }}
     >
       <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 8 }}>{label}</div>
@@ -55,11 +58,8 @@ export const SettingsNode = ({ id, data }: NodeProps) => {
           />
         </div>
       </div>
-      {/* Config goes out to the right; use handle id for clarity */}
       <Handle id="config" type="source" position={Position.Right} />
-      <div style={{ position: 'absolute', right: -6, top: '50%', transform: 'translate(100%, -50%)', fontSize: 10, color: '#6b7280' }}>
-        config
-      </div>
+      <HandleLabel nodeType={type || 'settings'} handleId="config" handleType="output" position="right" />
     </div>
   );
 };

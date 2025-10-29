@@ -66,3 +66,15 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* Override ReactFlow default node styles - remove fixed width */
+.react-flow__node-output,
+.react-flow__node-input,
+.react-flow__node-default,
+.react-flow__node-group,
+.react-flow__node-settings,
+.react-flow__node-textInput,
+.react-flow__node-ollama {
+  width: auto !important;
+  border: none !important;
+}
