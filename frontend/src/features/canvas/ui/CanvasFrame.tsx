@@ -10,9 +10,10 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useWorkflowStore } from '../model';
-import { OllamaNode, SettingsNode, TextInputNode, OutputNode } from './nodes';
+import { TextInputNode, OllamaNode, SettingsNode, OutputNode } from '../../../entities/nodes';
+import { NodeActionsProvider } from './NodeActionsContext';
 
-export const WorkFlowFrame = () => {
+export const CanvasFrame = () => {
   const nodes = useWorkflowStore((state) => state.nodes);
   const edges = useWorkflowStore((state) => state.edges);
   const onNodesChange = useWorkflowStore((state) => state.onNodesChange);
@@ -36,11 +37,23 @@ export const WorkFlowFrame = () => {
     );
   };
 
-  const nodeTypes: NodeTypes = { lr: LeftRightNode, ollama: OllamaNode, settings: SettingsNode, textInput: TextInputNode, output: OutputNode };
+  const nodeTypes: NodeTypes = {
+    lr: LeftRightNode,
+    textInput: TextInputNode,
+    ollama: OllamaNode,
+    settings: SettingsNode,
+    output: OutputNode,
+  };
+
+  const setNodes = useWorkflowStore((s) => s.setNodes);
+  const updateNodeData = (nodeId: string, patch: Record<string, unknown>) => {
+    setNodes(nodes.map((n) => (n.id === nodeId ? { ...n, data: { ...(n.data as any), ...patch } } : n)));
+  };
 
   return (
     <div style={{ width: '100vw', height: '100vh' }}>
-      <ReactFlow
+      <NodeActionsProvider value={{ updateNodeData }}>
+        <ReactFlow
         nodes={nodes}
         edges={edges}
         onNodesChange={onNodesChange}
@@ -48,12 +61,14 @@ export const WorkFlowFrame = () => {
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         fitView
-      >
-        <Controls />
-        <MiniMap />
-        <Background gap={12} size={1} />
-      </ReactFlow>
+        >
+          <Controls />
+          <MiniMap />
+          <Background gap={12} size={1} />
+        </ReactFlow>
+      </NodeActionsProvider>
     </div>
   );
 }
+
 

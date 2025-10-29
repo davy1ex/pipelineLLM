@@ -1,17 +1,17 @@
-import { useWorkflowStore, nodeTemplates, buildNodeFromTemplate, buildNodeFromTemplates } from '../model';
-import { uiNodeTemplates } from './nodes/registry';
+import { useWorkflowStore } from '../../../features/canvas/model';
+import { uiNodeTemplates } from '../../../entities/nodes/registry';
+import { buildNodeFromTemplates } from '../../../shared/lib/nodeTemplate';
 import type { Node } from '@xyflow/react';
 
-export const WorkFlowToolbar = () => {
-  const addNode = useWorkflowStore((state) => state.addNode);
-  const clearWorkflow = useWorkflowStore((state) => state.clearWorkflow);
-  const nodes = useWorkflowStore((state) => state.nodes);
+export const Toolbar = () => {
+  const addNode = useWorkflowStore((s) => s.addNode);
+  const clearWorkflow = useWorkflowStore((s) => s.clearWorkflow);
+  const nodes = useWorkflowStore((s) => s.nodes);
 
-  const templatesCombined = [...nodeTemplates, ...uiNodeTemplates];
+  const templatesCombined = [...uiNodeTemplates];
 
   const handleAddFromTemplate = (templateId: string) => {
-    // Try model registry first for backward-compat, then UI templates
-    const newNode = buildNodeFromTemplate(templateId) ?? buildNodeFromTemplates(templatesCombined, templateId);
+    const newNode = buildNodeFromTemplates(templatesCombined, templateId);
     if (newNode) addNode(newNode as Node);
   };
 
@@ -30,7 +30,6 @@ export const WorkFlowToolbar = () => {
       flexDirection: 'column',
     }}>
       <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>Add Nodes</h3>
-
       {templatesCombined.map((tpl) => (
         <button
           key={tpl.id}
@@ -48,9 +47,7 @@ export const WorkFlowToolbar = () => {
           {tpl.label}
         </button>
       ))}
-
       <hr style={{ margin: '5px 0', border: 'none', borderTop: '1px solid #eee' }} />
-
       <button
         onClick={clearWorkflow}
         style={{
@@ -65,11 +62,11 @@ export const WorkFlowToolbar = () => {
       >
         🗑️ Clear All
       </button>
-
       <div style={{ fontSize: '12px', color: '#666' }}>
         Nodes: {nodes.length}
       </div>
     </div>
   );
 };
+
 

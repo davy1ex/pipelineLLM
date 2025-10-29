@@ -1,4 +1,4 @@
-import type { NodeTemplate } from '../../../model/nodeRegistry';
+import type { NodeTemplate } from '../../../shared/lib/nodeTemplate';
 
 export const settingsTemplate: NodeTemplate = {
   id: 'settings',
@@ -8,5 +8,4 @@ export const settingsTemplate: NodeTemplate = {
   buildData: () => ({ label: '⚙️ Settings', url: 'http://localhost:11434', model: 'llama3.2' }),
   buildPosition: () => ({ x: Math.random() * 600 + 20, y: 140 }),
 };
-
 

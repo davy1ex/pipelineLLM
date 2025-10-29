@@ -1,4 +1,4 @@
-import type { NodeTemplate } from '../../../model/nodeRegistry';
+import type { NodeTemplate } from '../../../shared/lib/nodeTemplate';
 
 export const textInputTemplate: NodeTemplate = {
   id: 'text-input',
@@ -8,5 +8,4 @@ export const textInputTemplate: NodeTemplate = {
   buildData: () => ({ label: '📝 Text Input', value: '' }),
   buildPosition: () => ({ x: Math.random() * 600 + 50, y: 200 }),
 };
-
 

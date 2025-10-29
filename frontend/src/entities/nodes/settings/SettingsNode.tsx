@@ -1,20 +1,14 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { useWorkflowStore } from '../../../model';
+import { useNodeActions } from '../../../features/canvas/ui/NodeActionsContext';
 
 export const SettingsNode = ({ id, data }: NodeProps) => {
-  const nodes = useWorkflowStore((s) => s.nodes);
-  const setNodes = useWorkflowStore((s) => s.setNodes);
+  const { updateNodeData } = useNodeActions();
 
   const label: string = (data as any)?.label ?? 'Settings';
   const url: string = (data as any)?.url ?? 'http://localhost:11434';
   const model: string = (data as any)?.model ?? 'llama3.2';
 
-  const updateData = (updates: Record<string, unknown>) => {
-    const updated = nodes.map((n) =>
-      n.id === id ? { ...n, data: { ...(n.data as any), ...updates } } : n
-    );
-    setNodes(updated);
-  };
+  const updateData = (updates: Record<string, unknown>) => updateNodeData(id as string, updates);
 
   return (
     <div
@@ -69,6 +63,4 @@ export const SettingsNode = ({ id, data }: NodeProps) => {
     </div>
   );
 };
-
-
 

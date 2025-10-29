@@ -1,19 +1,13 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
-import { useWorkflowStore } from '../../../model';
+import { useNodeActions } from '../../../features/canvas/ui/NodeActionsContext';
 
 export const TextInputNode = ({ id, data }: NodeProps) => {
-  const nodes = useWorkflowStore((s) => s.nodes);
-  const setNodes = useWorkflowStore((s) => s.setNodes);
+  const { updateNodeData } = useNodeActions();
 
   const value: string = (data as any)?.value ?? '';
   const label: string = (data as any)?.label ?? 'Text Input';
 
-  const updateValue = (next: string) => {
-    const updated = nodes.map((n) =>
-      n.id === id ? { ...n, data: { ...(n.data as any), value: next } } : n
-    );
-    setNodes(updated);
-  };
+  const updateValue = (next: string) => updateNodeData(id as string, { value: next });
 
   return (
     <div
@@ -49,6 +43,4 @@ export const TextInputNode = ({ id, data }: NodeProps) => {
     </div>
   );
 };
-
-
 

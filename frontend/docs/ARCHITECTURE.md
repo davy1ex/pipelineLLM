@@ -2,117 +2,154 @@
 
 ## Overview
 
-PipelineLLM frontend is a React-based application following **Feature-Sliced Design (FSD)** methodology. The application provides a visual node-based interface for building LLM workflows.
+PipelineLLM frontend follows **Feature-Sliced Design (FSD)** and renders a node-based workflow using ReactFlow. The system is split by responsibility: the canvas renders, entities provide pluggable nodes, widgets offer UI controls, and shared holds cross-cutting utilities.
 
 ## Tech Stack
 
-- **React 19** - UI library with modern hooks
-- **TypeScript** - Type safety and better DX
-- **Vite** - Fast build tool and dev server
-- **ReactFlow (@xyflow/react)** - Node-based workflow visualization
-- **Zustand** - Lightweight state management
-- **ESLint** - Code quality and consistency
+- **React 19** - UI
+- **TypeScript** - Types
+- **Vite** - Dev/build
+- **@xyflow/react** (ReactFlow) - Graph rendering
+- **Zustand** - State store
+- **ESLint** - Linting
 
-## Architecture Pattern: Feature-Sliced Design
-
-### Why FSD?
-
-Traditional approaches organize code by technical layers (components/, hooks/, utils/), which leads to:
-- ❌ Features scattered across multiple directories
-- ❌ Hard to find all code related to a feature
-- ❌ Difficult to scale and maintain
-- ❌ Tight coupling between unrelated features
-
-FSD organizes code by **business features** (slices), where each feature is self-contained:
-- ✅ All feature code in one place
-- ✅ Clear boundaries and dependencies
-- ✅ Easy to find, modify, and test
-- ✅ Scalable architecture
-
-### Directory Structure
+## Directory Structure (FSD, updated)
 
 ```
 src/
-├── app/                    # Application initialization
-│   └── components/         # Global components
+├── app/                          # App-level
+│   └── components/
 │       └── ErrorBoundary.tsx
 │
-├── pages/                  # Page-level routing
+├── pages/
 │   └── workflow/
-│       └── WorkFlowPage.tsx
+│       └── WorkFlowPage.tsx      # Composes Canvas + Toolbar
 │
-├── features/               # Business features (main layer)
-│   └── workflow/           # Workflow feature
-│       ├── model/          # Business logic & state
-│       │   ├── workflowStore.ts
-│       │   ├── initWorkflow.ts
-│       │   └── index.ts
-│       ├── ui/             # UI components
-│       │   ├── WorkFlowFrame.tsx
-│       │   ├── WorkFlowToolbar.tsx
-│       │   └── index.ts
-│       └── index.ts        # Public API
+├── features/
+│   └── canvas/                   # Workflow canvas (render + state + init)
+│       ├── model/
+│       │   ├── workflowStore.ts  # Zustand store (nodes/edges/handlers)
+│       │   └── initWorkflow.ts   # Demo graph (starter nodes/edges)
+│       └── ui/
+│           ├── CanvasFrame.tsx   # ReactFlow canvas
+│           └── NodeActionsContext.tsx # Interface exposed to nodes
 │
-├── widgets/                # Composite UI blocks (future)
-├── entities/               # Business entities (future)
-├── shared/                 # Reusable utilities (future)
-└── assets/                 # Static files
+├── entities/
+│   └── nodes/                    # Pluggable node modules (self-contained)
+│       ├── text-input/
+│       │   ├── TextInputNode.tsx
+│       │   └── template.ts
+│       ├── ollama/
+│       │   ├── OllamaNode.tsx
+│       │   └── template.ts
+│       ├── settings/
+│       │   ├── SettingsNode.tsx
+│       │   └── template.ts
+│       ├── output/
+│       │   ├── OutputNode.tsx
+│       │   └── template.ts
+│       ├── registry.ts           # Aggregates node templates for toolbar
+│       └── index.ts              # Re-exports node components
+│
+├── widgets/
+│   └── toolbar/
+│       ├── ui/Toolbar.tsx        # Data-driven toolbar (creates nodes)
+│       └── index.ts
+│
+├── shared/
+│   └── lib/
+│       └── nodeTemplate.ts       # NodeTemplate type + build helper
+│
+└── assets/
 ```
 
-## Layers Hierarchy
+## Layers and Dependencies
 
 ```
-app      → uses → pages, features, widgets, entities, shared
-pages    → uses → features, widgets, entities, shared
-features → uses → entities, shared
-widgets  → uses → features, entities, shared
-entities → uses → shared
-shared   → uses → nothing (self-contained)
+app      → pages
+pages    → features/canvas, widgets/toolbar
+features → entities, shared
+widgets  → entities, shared
+entities → shared
+shared   → (no upward deps)
 ```
 
-**Rule**: Lower layers **cannot** import from upper layers.
+Lower layers never depend on upper layers.
 
-## State Management
+## Module Responsibilities
 
-### Zustand Approach
+### features/canvas
 
-We use **Zustand** for state management instead of Redux because:
-- ✅ Minimal boilerplate
-- ✅ No providers needed
-- ✅ Simple API
-- ✅ TypeScript friendly
-- ✅ DevTools support
+- Owns the workflow state and initial graph
+- Renders ReactFlow via `CanvasFrame`
+- Provides `NodeActionsContext` with a minimal interface to nodes (e.g., `updateNodeData`) so nodes remain UI-only and store-agnostic
 
-### Store Organization
+```tsx
+// features/canvas/ui/CanvasFrame.tsx (excerpt)
+const nodeTypes: NodeTypes = {
+  lr: LeftRightNode,
+  textInput: TextInputNode,
+  ollama: OllamaNode,
+  settings: SettingsNode,
+  output: OutputNode,
+};
 
-Each feature has its own store in `features/{feature}/model/`:
-
+<NodeActionsProvider value={{ updateNodeData }}>
+  <ReactFlow ... nodeTypes={nodeTypes} />
+</NodeActionsProvider>
 ```
-features/workflow/
-  model/
-    workflowStore.ts    ← Zustand store for workflow state
+
+### entities/nodes
+
+- Each node is a self-contained module (component + template + local libs if needed)
+- Nodes do not import the store; they call the context interface only
+- The toolbar pulls available templates from `entities/nodes/registry.ts`
+
+```tsx
+// entities/nodes/text-input/TextInputNode.tsx (excerpt)
+const { updateNodeData } = useNodeActions();
+const updateValue = (next: string) => updateNodeData(id as string, { value: next });
 ```
 
-**Benefits:**
-- Feature isolation
-- No global state pollution
-- Easy to test
-- Clear ownership
+```ts
+// entities/nodes/registry.ts (excerpt)
+export const uiNodeTemplates: NodeTemplate[] = [
+  textInputTemplate,
+  ollamaMockTemplate,
+  settingsTemplate,
+  outputTemplate,
+];
+```
 
-See [WORKFLOW_STORE.md](./WORKFLOW_STORE.md) for detailed store documentation.
+### widgets/toolbar
 
-## Component Architecture
+- Renders buttons from the templates registry (no knowledge of node internals)
+- Uses shared helper to instantiate nodes
 
-### 1. Pages Layer
+```tsx
+// widgets/toolbar/ui/Toolbar.tsx (excerpt)
+const templates = uiNodeTemplates;
+const newNode = buildNodeFromTemplates(templates, templateId);
+```
 
-**Purpose**: Route-level components that compose features.
+### shared/lib
 
-```typescript
+- Cross-cutting utilities and types
+
+```ts
+// shared/lib/nodeTemplate.ts (excerpt)
+export type NodeTemplate = { id; label; type; ... };
+export function buildNodeFromTemplates(templates, id): Node | null { ... }
+```
+
+## Page Composition
+
+```tsx
 // pages/workflow/WorkFlowPage.tsx
 export const WorkFlowPage = () => {
-  // Initialize workflow with demo data
-  const setNodes = useWorkflowStore((state) => state.setNodes);
-  const setEdges = useWorkflowStore((state) => state.setEdges);
+  const setNodes = useWorkflowStore((s) => s.setNodes);
+  const setEdges = useWorkflowStore((s) => s.setEdges);
+  const nodes = useWorkflowStore((s) => s.nodes);
 
   useEffect(() => {
     if (nodes.length === 0) {
@@ -122,283 +159,53 @@ export const WorkFlowPage = () => {
   }, []);
 
   return (
-    <div>
-      <WorkFlowFrame />
-      <WorkFlowToolbar />
+    <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
+      <CanvasFrame />
+      <Toolbar />
     </div>
   );
 };
 ```
 
-### 2. Features Layer
+## Data & Control Flow
 
-**Purpose**: Business features with state, logic, and UI.
+1) User clicks a toolbar button → toolbar builds a node from a template → adds it to the store
+2) Store updates → CanvasFrame re-renders ReactFlow → new node appears
+3) Node updates its own data via `NodeActionsContext.updateNodeData(id, patch)`
+4) Edges are always created as `type: 'step'` for consistent left→right connectors
 
-#### Workflow Feature Structure
+## TypeScript & Patterns
 
-```
-features/workflow/
-├── model/                      # State & Logic
-│   ├── workflowStore.ts        # Zustand store
-│   ├── initWorkflow.ts         # Initial data
-│   └── index.ts                # Exports
-├── ui/                         # UI Components
-│   ├── WorkFlowFrame.tsx       # Canvas component
-│   ├── WorkFlowToolbar.tsx     # Toolbar component
-│   └── index.ts                # Exports
-└── index.ts                    # Public API
-```
+- Prefer type-only imports (`import type {...}`) to avoid runtime imports
+- Nodes consume a minimal context API instead of importing the store
+- Templates declare `type`, `data` defaults, and positioning; toolbar remains generic
 
-#### Public API Pattern
+## Current Nodes
 
-```typescript
-// features/workflow/index.ts
-export { WorkFlowFrame, WorkFlowToolbar } from './ui';
-export { useWorkflowStore, getInitialNodes, getInitialEdges } from './model';
-```
+- TextInputNode: text input with right output
+- SettingsNode: editable URL/model, right `config` output
+- OllamaNode (mock UI): left `prompt`, left `config`, right `output`
+- OutputNode: left `text` input, preview area
 
-**Usage:**
-```typescript
-import {
-  WorkFlowFrame,
-  useWorkflowStore,
-  getInitialNodes
-} from '../../features/workflow';
-```
+## Performance
 
-### 3. App Layer
-
-**Purpose**: Global application setup.
-
-Currently contains:
-- `ErrorBoundary` - Catches React errors globally
-
-## Data Flow
-
-### Typical User Interaction Flow
-
-```
-1. User clicks "Add Node" button
-         ↓
-2. WorkFlowToolbar.handleAddNode()
-         ↓
-3. useWorkflowStore.addNode(newNode)
-         ↓
-4. Zustand updates store state
-         ↓
-5. WorkFlowFrame re-renders (subscribed to store)
-         ↓
-6. ReactFlow displays new node
-```
-
-### State Management Flow
-
-```typescript
-// Subscribe to specific state
-const nodes = useWorkflowStore((state) => state.nodes);
-
-// Component only re-renders when nodes change
-// Not when edges or other state changes
-```
-
-## TypeScript Patterns
-
-### Type-Only Imports
-
-For types from external libraries, use `import type`:
-
-```typescript
-// ✅ Correct
-import type { Node, Edge } from '@xyflow/react';
-
-// ❌ Wrong - runtime import error
-import { Node, Edge } from '@xyflow/react';
-```
-
-**Why?** With `verbatimModuleSyntax` enabled, TypeScript requires explicit type-only imports for types.
-
-### Store Typing
-
-```typescript
-interface WorkflowState {
-  // State
-  nodes: Node[];
-  edges: Edge[];
-  
-  // Actions
-  addNode: (node: Node) => void;
-  removeNode: (nodeId: string) => void;
-  
-  // Handlers
-  onNodesChange: OnNodesChange;
-  onEdgesChange: OnEdgesChange;
-  onConnect: OnConnect;
-}
-
-export const useWorkflowStore = create<WorkflowState>((set, get) => ({
-  // Implementation
-}));
-```
-
-## Performance Optimization
-
-### Zustand Selectors
-
-```typescript
-// ✅ Good - only re-renders when nodes change
-const nodes = useWorkflowStore((state) => state.nodes);
-
-// ❌ Bad - re-renders on any store change
-const store = useWorkflowStore();
-const nodes = store.nodes;
-```
-
-### ReactFlow Optimization
-
-ReactFlow has built-in optimizations:
-- Virtual rendering (only visible nodes)
-- Optimized drag/drop
-- Memoized edge calculations
+- Zustand selectors are used to avoid unnecessary re-renders
+- ReactFlow provides virtualized rendering and optimized edge calculations
 
 ## Error Handling
 
-### ErrorBoundary
-
-Global error boundary catches React errors:
-
-```typescript
-// app/components/ErrorBoundary.tsx
-<ErrorBoundary>
-  <WorkFlowPage />
-</ErrorBoundary>
-```
-
-**Features:**
-- Catches render errors
-- Displays error details
-- Try again button
-- Reload page button
-
-## Build & Development
-
-### Development Server
-
-```bash
-npm run dev
-```
-
-- Hot Module Replacement (HMR)
-- Fast refresh
-- TypeScript checking
-- ESLint on save
-
-### Production Build
-
-```bash
-npm run build
-```
-
-- TypeScript compilation
-- Vite optimization
-- Code splitting
-- Tree shaking
-- Minification
-
-## Testing Strategy (Future)
-
-### Unit Tests
-- Store actions
-- Utility functions
-- Custom hooks
-
-### Component Tests
-- UI component behavior
-- User interactions
-- Store integration
-
-### E2E Tests
-- Full workflow creation
-- Node operations
-- Save/load workflows
-
-## Future Architecture
-
-### Shared Layer
-
-```
-shared/
-├── ui/               # UI kit components
-│   ├── Button/
-│   ├── Input/
-│   └── Modal/
-├── lib/              # Utilities
-│   ├── date.ts
-│   └── format.ts
-└── api/              # API client
-    └── client.ts
-```
-
-### Entities Layer
-
-```
-entities/
-└── node/
-    ├── model/
-    │   ├── types.ts
-    │   └── schema.ts
-    └── ui/
-        └── NodeCard.tsx
-```
-
-### Widgets Layer
-
-```
-widgets/
-├── header/
-│   └── ui/Header.tsx
-└── sidebar/
-    └── ui/Sidebar.tsx
-```
-
-## Key Principles
-
-### 1. Feature Isolation
-Each feature is self-contained with its own:
-- State management
-- UI components
-- Business logic
-- Public API
-
-### 2. Single Responsibility
-- **Pages**: Composition
-- **Features**: Business logic
-- **App**: Global setup
-- **Shared**: Utilities
-
-### 3. Clear Dependencies
-- Top layers depend on bottom layers
-- Bottom layers never depend on top layers
-- Features don't depend on other features' internals
-
-### 4. Public API
-Each feature exports only what's needed:
-- Hide implementation details
-- Easy to refactor internally
-- Prevents tight coupling
+- `ErrorBoundary` wraps the page for graceful errors
 
 ## Resources
 
-### Internal Documentation
-- [Nodes and Edges](./NODES_AND_EDGES.md) ← Workflow concepts (nodes, edges, execution)
-- [Workflow Store Details](./WORKFLOW_STORE.md) ← Detailed store documentation
-
-### External Resources
-- [Feature-Sliced Design](https://feature-sliced.design/)
+- [Nodes and Edges](./NODES_AND_EDGES.md)
+- [Workflow Store Details](./WORKFLOW_STORE.md)
 - [ReactFlow Documentation](https://reactflow.dev/)
+- [Feature-Sliced Design](https://feature-sliced.design/)
 - [Zustand Documentation](https://zustand-demo.pmnd.rs/)
 
 ---
 
-**Last Updated**: October 29, 2025  
-**Version**: 0.1.0-alpha
+**Last Updated**: October 29, 2025
 
+**Version**: 0.1.0-alpha

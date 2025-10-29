@@ -1,4 +1,4 @@
-import type { NodeTemplate } from '../../../model/nodeRegistry';
+import type { NodeTemplate } from '../../../shared/lib/nodeTemplate';
 
 export const ollamaMockTemplate: NodeTemplate = {
   id: 'ollama-mock',
@@ -8,5 +8,4 @@ export const ollamaMockTemplate: NodeTemplate = {
   buildData: () => ({ label: '🧪 Ollama Mock', model: 'llama3.2', temperature: 0.7 }),
   buildPosition: () => ({ x: Math.random() * 600 + 50, y: 200 }),
 };
-
 

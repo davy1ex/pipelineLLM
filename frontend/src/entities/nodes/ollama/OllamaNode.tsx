@@ -43,5 +43,3 @@ export const OllamaNode = ({ data }: NodeProps) => {
   );
 };
 
-
-

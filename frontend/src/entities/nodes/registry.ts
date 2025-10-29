@@ -1,4 +1,4 @@
-import type { NodeTemplate } from '../../model/nodeRegistry';
+import type { NodeTemplate } from '../../shared/lib/nodeTemplate';
 import { textInputTemplate } from './text-input/template';
 import { ollamaMockTemplate } from './ollama/template';
 import { settingsTemplate } from './settings/template';

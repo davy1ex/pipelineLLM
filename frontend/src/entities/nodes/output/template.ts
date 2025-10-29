@@ -1,4 +1,4 @@
-import type { NodeTemplate } from '../../../model/nodeRegistry';
+import type { NodeTemplate } from '../../../shared/lib/nodeTemplate';
 
 export const outputTemplate: NodeTemplate = {
   id: 'output',
@@ -8,5 +8,4 @@ export const outputTemplate: NodeTemplate = {
   buildData: () => ({ label: '📤 Output', text: '' }),
   buildPosition: () => ({ x: Math.random() * 600 + 50, y: 200 }),
 };
-
 

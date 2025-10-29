@@ -29,51 +29,35 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   nodes: [],
   edges: [],
 
-  // React Flow handlers
   onNodesChange: (changes) => {
-    set({
-      nodes: applyNodeChanges(changes, get().nodes),
-    });
+    set({ nodes: applyNodeChanges(changes, get().nodes) });
   },
 
   onEdgesChange: (changes) => {
-    set({
-      edges: applyEdgeChanges(changes, get().edges),
-    });
+    set({ edges: applyEdgeChanges(changes, get().edges) });
   },
 
   onConnect: (connection) => {
     const stepConnection = { ...connection, type: 'step' } as any;
-    set({
-      edges: addEdge(stepConnection, get().edges),
-    });
+    set({ edges: addEdge(stepConnection, get().edges) });
   },
 
-  // Custom actions
   setNodes: (nodes) => set({ nodes }),
-
   setEdges: (edges) => set({ edges }),
 
   addNode: (node) => {
-    set({
-      nodes: [...get().nodes, node],
-    });
+    set({ nodes: [...get().nodes, node] });
   },
 
   removeNode: (nodeId) => {
     set({
       nodes: get().nodes.filter((node) => node.id !== nodeId),
-      edges: get().edges.filter(
-        (edge) => edge.source !== nodeId && edge.target !== nodeId
-      ),
+      edges: get().edges.filter((edge) => edge.source !== nodeId && edge.target !== nodeId),
     });
   },
 
   clearWorkflow: () => {
-    set({
-      nodes: [],
-      edges: [],
-    });
+    set({ nodes: [], edges: [] });
   },
 }));
 

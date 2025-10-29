@@ -1,11 +1,6 @@
 import { useEffect } from 'react'
-import {
-  WorkFlowFrame,
-  WorkFlowToolbar,
-  useWorkflowStore,
-  getInitialNodes,
-  getInitialEdges
-} from '../../features/workflow'
+import { CanvasFrame, useWorkflowStore, getInitialNodes, getInitialEdges } from '../../features/canvas'
+import { Toolbar } from '../../widgets/toolbar'
 
 export const WorkFlowPage = () => {
     const setNodes = useWorkflowStore((state) => state.setNodes)
@@ -22,8 +17,8 @@ export const WorkFlowPage = () => {
 
     return (
         <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
-            <WorkFlowFrame />
-            <WorkFlowToolbar />
+            <CanvasFrame />
+            <Toolbar />
         </div>
     )
 }
