@@ -6,6 +6,10 @@ export const OllamaNode = ({ id, data }: NodeProps) => {
   const label: string = (data as any)?.label ?? 'Ollama Mock';
   const selfModel: string = (data as any)?.model ?? 'llama3.2';
   const temperature: number = (data as any)?.temperature ?? 0.7;
+  // Read prompt from default incoming handle (e.g., TextInput -> Ollama)
+  const promptData = (getIncomingData(id as string) as any) || {};
+  const prompt: string | undefined = promptData.value ?? promptData.text;
+
   // Read config from connected Settings node via 'config' handle, override own defaults
   const config = (getIncomingData(id as string, 'config') as any) || {};
   const model: string = config.model ?? selfModel;
@@ -38,6 +42,11 @@ export const OllamaNode = ({ id, data }: NodeProps) => {
         {url && <div><strong>URL:</strong> {url}</div>}
         <div><strong>Model:</strong> {model}</div>
         <div><strong>Temp:</strong> {temperature}</div>
+        {prompt && (
+          <div style={{ marginTop: 6 }}>
+            <strong>Prompt:</strong> <span style={{ color: '#6b7280' }}>{prompt.slice(0, 80)}{prompt.length > 80 ? '…' : ''}</span>
+          </div>
+        )}
         <div style={{ marginTop: 6, fontStyle: 'italic', color: '#6b7280' }}>
           Mock: no backend call
         </div>
