@@ -1,6 +1,7 @@
+import React from 'react'
 import { Position, type NodeProps } from '@xyflow/react';
 import { useNodeActions } from '../../../features/canvas/ui/NodeActionsContext';
-import { HandleLabel } from '../../../shared/ui/HandleLabel';
+// import { HandleLabel } from '../../../shared/ui/HandleLabel';
 import { NodeShell } from '../../../shared/ui/NodeShell';
 
 export const TextInputNode = ({ id, data, type }: NodeProps) => {
@@ -9,7 +10,15 @@ export const TextInputNode = ({ id, data, type }: NodeProps) => {
   const value: string = (data as any)?.value ?? '';
   const label: string = (data as any)?.label ?? 'Text Input';
 
-  const updateValue = (next: string) => updateNodeData(id as string, { value: next });
+  // Prevent caret jump: keep local state and sync outward
+  const [localValue, setLocalValue] = React.useState<string>(value);
+  React.useEffect(() => {
+    setLocalValue(value);
+  }, [value, id]);
+  const updateValue = (next: string) => {
+    setLocalValue(next);
+    requestAnimationFrame(() => updateNodeData(id as string, { value: next }));
+  };
 
   return (
     <NodeShell
@@ -18,11 +27,11 @@ export const TextInputNode = ({ id, data, type }: NodeProps) => {
         { id: 'output', type: 'source', position: Position.Right, label: 'output', dataType: 'string' },
       ]}
       controls={[
-        { key: 'value', label: 'value', value: value, placeholder: 'Enter text...' },
+        { key: 'value', label: 'value', value: localValue, placeholder: 'Enter text...' },
       ]}
     >
       <textarea
-        value={value}
+        value={localValue}
         onChange={(e) => updateValue(e.target.value)}
         placeholder="Enter text..."
         style={{
