@@ -43,14 +43,13 @@ export const NodeShell: React.FC<NodeShellProps> = ({
   connectorRowRefs,
   controls = [],
   children,
-  width,
   outerRef,
 }) => {
   return (
     <div
       className="node-shell"
       style={{
-        width: width ?? 'auto',
+        width: 500,
         background: 'white',
         border: '1px solid #e5e7eb',
         borderRadius: 8,
@@ -152,6 +151,9 @@ const ControlsList: React.FC<{
   const [editingKey, setEditingKey] = React.useState<string | null>(null)
   const [tempValue, setTempValue] = React.useState<string>('')
   const [viewKey, setViewKey] = React.useState<string | null>(null)
+  React.useEffect(() => {
+    console.log('controls', controls)
+  }, [controls])
 
   return (
     <div style={{padding: '8px 10px', borderBottom: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: 6 }}>
