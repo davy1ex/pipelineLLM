@@ -168,16 +168,15 @@ export const WorkFlowPage = () => {
     }
 
     return (
-        <>
+        <div style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <Header handleStart={handleRun} isRunning={isRunning} />
             <NodeActionsProvider value={{ updateNodeData, getIncomingData }}>
-                <div style={{ position: 'relative', width: '100vw', height: '100vh' }}>
+                <div style={{ position: 'relative', width: '100%', flex: 1, overflow: 'hidden' }}>
                     <CanvasFrame />
                     <Toolbar />
                     <PropertyPanel />
                 </div>
             </NodeActionsProvider>
-        </>
-        
+        </div>
     )
 }
