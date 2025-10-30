@@ -6,6 +6,7 @@ import { HandleLabel } from '../../../shared/ui/HandleLabel';
 export const OutputNode = ({ id, data, type }: NodeProps) => {
   const { getIncomingData } = useNodeActions();
   const label: string = (data as any)?.label ?? 'Output Preview';
+  const [expanded, setExpanded] = React.useState(false);
   
   // Priority: 1) data.text (updated from workflow execution), 2) incoming data from connected node
   const nodeText = (data as any)?.text || '';
@@ -43,7 +44,8 @@ export const OutputNode = ({ id, data, type }: NodeProps) => {
         border: '1px solid #e5e7eb',
         borderRadius: 8,
         boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-        minWidth: 240,
+        minWidth: 260,
+        maxWidth: 380,
         position: 'relative',
         boxSizing: 'border-box',
       }}
@@ -51,7 +53,22 @@ export const OutputNode = ({ id, data, type }: NodeProps) => {
       <Handle type="target" position={Position.Left} />
       <HandleLabel nodeType={type || 'output'} handleId="text" handleType="input" position="left" />
       
-      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>{label}</div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
+        <div style={{ fontSize: 12, fontWeight: 700 }}>{label}</div>
+        <button
+          onClick={() => setExpanded((v) => !v)}
+          style={{
+            fontSize: 11,
+            padding: '4px 8px',
+            borderRadius: 6,
+            border: '1px solid #d1d5db',
+            background: '#f9fafb',
+            cursor: 'pointer',
+          }}
+        >
+          {expanded ? 'Collapse' : 'Expand'}
+        </button>
+      </div>
       <div
         style={{
           minHeight: 70,
@@ -63,7 +80,9 @@ export const OutputNode = ({ id, data, type }: NodeProps) => {
           whiteSpace: 'pre-wrap',
           boxSizing: 'border-box',
           wordBreak: 'break-word',
-          overflow: 'hidden',
+          overflowWrap: 'anywhere',
+          overflow: expanded ? 'auto' : 'hidden',
+          maxHeight: expanded ? 420 : 120,
         }}
       >
         {text || 'No content yet'}
