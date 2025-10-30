@@ -108,7 +108,12 @@ const nodeTypes: NodeTypes = {
 ```tsx
 // entities/nodes/text-input/TextInputNode.tsx (excerpt)
 const { updateNodeData } = useNodeActions();
-const updateValue = (next: string) => updateNodeData(id as string, { value: next });
+// Local state prevents caret jump while syncing to store
+const [localValue, setLocalValue] = React.useState(value);
+const updateValue = (next: string) => {
+  setLocalValue(next);
+  requestAnimationFrame(() => updateNodeData(id as string, { value: next }));
+};
 ```
 
 ```ts
@@ -173,6 +178,7 @@ export const WorkFlowPage = () => {
 2) Store updates → CanvasFrame re-renders ReactFlow → new node appears
 3) Node updates its own data via `NodeActionsContext.updateNodeData(id, patch)`
 4) Edges are always created as `type: 'step'` for consistent left→right connectors
+5) Nodes describe connectors via `connectors` array (handled/laid out by `NodeShell`)
 
 ## TypeScript & Patterns
 
@@ -182,10 +188,10 @@ export const WorkFlowPage = () => {
 
 ## Current Nodes
 
-- TextInputNode: text input with right output
-- SettingsNode: editable URL/model, right `config` output
-- OllamaNode (mock UI): left `prompt`, left `config`, right `output`
-- OutputNode: left `text` input, preview area
+- TextInputNode: right `output`; local input state to avoid caret jump
+- SettingsNode: right `config` (url, model, temperature)
+- OllamaNode: left `prompt`, left `systemPrompt`, left `config`, right `output`; UI merges own data and incoming; execution prioritizes incoming handles
+- OutputNode: left `text`; markdown rendering with autosize/expand
 
 ## Performance
 

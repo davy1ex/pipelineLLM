@@ -37,20 +37,15 @@ const nodeTypes = {
 - Visual: compact panel with label, side connectors
 - Used by: demo nodes like Text Input, LLM placeholder, Output placeholder
 
-### OllamaNode (mock)
-- Purpose: represents an LLM call node (mocked)
-- Inputs (left):
-  - `prompt` (default target handle)
-  - `config` (target handle with id="config")
-- Output (right):
-  - `output` (default source handle)
-- Displays label, model, temperature and a note "Mock: no backend call"
+### OllamaNode
+- Purpose: represents an LLM call node (UI + used by execution engine)
+- Inputs (left): `prompt`, `systemPrompt`, `config`
+- Output (right): `output`
+- UI reads own `data` merged with incoming handles; during execution, incoming handles take precedence
 
 ### SettingsNode
-- Purpose: provides configuration for LLM nodes
-- Output (right):
-  - `config` (source handle with id="config")
-- Displays URL and model; intended to connect to `OllamaNode` `config` input
+- Purpose: provides configuration for LLM nodes (url, model, temperature)
+- Output (right): `config`
 
 ## Rendering Logic (WorkFlowFrame)
 
@@ -91,16 +86,21 @@ Follow FSD and keep the feature self-contained.
 - Path: `features/workflow/ui/nodes/MyCustomNode.tsx`
 
 ```tsx
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Position, type NodeProps } from '@xyflow/react';
+import { NodeShell } from '../../../shared/ui/NodeShell';
 
 export const MyCustomNode = ({ data }: NodeProps) => {
   const label = (data as any)?.label ?? 'My Custom Node';
   return (
-    <div style={{ padding: '10px 14px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 8 }}>
-      <Handle type="target" position={Position.Left} />
-      <div style={{ fontSize: 12, fontWeight: 700 }}>{label}</div>
-      <Handle type="source" position={Position.Right} />
-    </div>
+    <NodeShell
+      title={label}
+      connectors={[
+        { type: 'target', position: Position.Left, label: 'input' },
+        { type: 'source', position: Position.Right, label: 'output' },
+      ]}
+    >
+      {/* body */}
+    </NodeShell>
   );
 };
 ```

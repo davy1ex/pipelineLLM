@@ -44,6 +44,26 @@ interface Node {
 }
 ```
 
+### Node Rendering via NodeShell
+
+All nodes use a shared shell component `NodeShell` to render:
+- Header (title + actions)
+- Connectors area (rows with handle + label), defined by a `connectors` array
+- Controls list (stacked rows, optional editing)
+
+Connector item format:
+```ts
+type Connector = {
+  id?: string;
+  type: 'source' | 'target';
+  position: Position; // Left/Right
+  label: string;
+  dataType?: DataType; // drives handle color
+}
+```
+
+`NodeShell` renders handles without absolute positioning (scoped CSS override) so labels and handles align in rows.
+
 ### Node Properties Explained
 
 #### `id: string`

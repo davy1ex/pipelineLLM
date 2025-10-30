@@ -19,9 +19,10 @@ Complete overview of frontend architecture:
 ### [WORKFLOW_FRAME.md](./WORKFLOW_FRAME.md)
 How the canvas renders and how to extend it:
 - WorkFlowFrame data flow and responsibilities
-- Registered node types (`lr`, `ollama`, `settings`)
+- Registered node types (`textInput`, `ollama`, `settings`, `output`)
 - Edge policy (forced `step` on connect)
-- Step-by-step: add a new node type
+- NodeShell-based nodes with `connectors` array
+- Step-by-step: add a new node type using `NodeShell`
 - Toolbar and demo initialization integration
 
 ### [NODES_AND_EDGES.md](./NODES_AND_EDGES.md) 🆕
@@ -30,6 +31,7 @@ Fundamental concepts of workflow construction:
 - What is an Edge (connections, types, styling)
 - How nodes and edges form a workflow
 - Workflow execution flow
+- How `systemPrompt` is resolved (edge first, then node data fallback)
 - Saving and loading workflows
 - Visual best practices
 - Common issues and solutions
@@ -47,6 +49,12 @@ Detailed documentation for `workflowStore` (Zustand):
 - Troubleshooting guide
 
 **Read this** to understand workflow state management.
+
+### Node specifics (current)
+- TextInputNode: local input state prevents caret jump; right `output`
+- SettingsNode: emits `config` (url, model, temperature)
+- OllamaNode: `prompt`, `systemPrompt`, `config` inputs; incoming edges override local data
+- OutputNode: autosize on content/expand, markdown rendering with wrap at ~1200px
 
 ## 🎯 Quick Links
 
@@ -125,6 +133,6 @@ When adding new features or components:
 
 ---
 
-**Last Updated**: October 29, 2025  
+**Last Updated**: October 30, 2025  
 **Maintainers**: Development Team
 
