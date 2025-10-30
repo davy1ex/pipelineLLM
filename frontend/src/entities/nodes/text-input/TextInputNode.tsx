@@ -1,6 +1,7 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Position, type NodeProps } from '@xyflow/react';
 import { useNodeActions } from '../../../features/canvas/ui/NodeActionsContext';
 import { HandleLabel } from '../../../shared/ui/HandleLabel';
+import { NodeShell } from '../../../shared/ui/NodeShell';
 
 export const TextInputNode = ({ id, data, type }: NodeProps) => {
   const { updateNodeData } = useNodeActions();
@@ -11,39 +12,30 @@ export const TextInputNode = ({ id, data, type }: NodeProps) => {
   const updateValue = (next: string) => updateNodeData(id as string, { value: next });
 
   return (
-    <div
-      style={{
-        width: 'auto',
-        padding: '10px 14px',
-        background: 'white',
-        border: '1px solid #e5e7eb',
-        borderRadius: 8,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-        minWidth: 220,
-        position: 'relative',
-        boxSizing: 'border-box',
-      }}
+    <NodeShell
+      title={label}
+      connectors={[
+        { id: 'output', type: 'source', position: Position.Right, label: 'output', dataType: 'string' },
+      ]}
+      controls={[]}
     >
-      <div style={{ fontSize: 12, fontWeight: 700, marginBottom: 6 }}>{label}</div>
       <textarea
         value={value}
         onChange={(e) => updateValue(e.target.value)}
         placeholder="Enter text..."
         style={{
           width: '100%',
-          maxWidth: 200,
-          height: 70,
+          height: 80,
           fontSize: 12,
           padding: 8,
           border: '1px solid #e5e7eb',
           borderRadius: 6,
           resize: 'vertical',
           boxSizing: 'border-box',
+          background: '#fff',
         }}
       />
-      <Handle type="source" position={Position.Right} />
-      <HandleLabel nodeType={type || 'textInput'} handleId="output" handleType="output" position="right" />
-    </div>
+    </NodeShell>
   );
 };
 

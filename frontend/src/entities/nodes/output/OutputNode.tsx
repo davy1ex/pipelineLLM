@@ -1,10 +1,10 @@
 import React from 'react';
 import MarkdownIt from 'markdown-it';
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Position, type NodeProps } from '@xyflow/react';
 import { useNodeActions } from '../../../features/canvas/ui/NodeActionsContext';
-import { HandleLabel } from '../../../shared/ui/HandleLabel';
+import { NodeShell } from '../../../shared/ui/NodeShell';
 
-export const OutputNode = ({ id, data, type }: NodeProps) => {
+export const OutputNode = ({ id, data }: NodeProps) => {
   const { getIncomingData, updateNodeData } = useNodeActions();
   const label: string = (data as any)?.label ?? 'Output Preview';
   const [expanded, setExpanded] = React.useState(false);
@@ -76,55 +76,20 @@ export const OutputNode = ({ id, data, type }: NodeProps) => {
   const renderMarkdown = (src: string) => md.render(src || '');
 
   return (
-    <div
-      style={{
-        width: size.width,
-        background: 'white',
-        border: '1px solid #e5e7eb',
-        borderRadius: 8,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-        minWidth: 240,
-        position: 'relative',
-        boxSizing: 'border-box',
-        textAlign: 'left',
-      }}
+    <NodeShell
+      title={label}
+      width={size.width}
+      headerActions={
+        <>
+          <button onClick={() => setExpanded((v) => !v)} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', background: '#f9fafb', cursor: 'pointer' }}>{expanded ? 'Collapse' : 'Expand'}</button>
+          <button onClick={() => setRenderMd((v) => !v)} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', background: renderMd ? '#e0e7ff' : '#f9fafb', cursor: 'pointer' }} title="Toggle Markdown rendering">{renderMd ? 'MD: On' : 'MD: Off'}</button>
+        </>
+      }
+      connectors={[
+        { id: 'text', type: 'target', position: Position.Left, label: 'text', dataType: 'string' },
+      ]}
+      controls={[]}
     >
-      <div style={{ backgroundColor: '#f9fafb' }}>
-
-        <Handle type="target" position={Position.Left} />
-        <HandleLabel nodeType={type || 'output'} handleId="text" handleType="input" position="left" />
-        
-        <div style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6  }}>
-            <div style={{ fontSize: 12, fontWeight: 700 }}>{label}</div>
-            <button
-            onClick={() => setExpanded((v) => !v)}
-            style={{
-                fontSize: 11,
-                padding: '4px 8px',
-                borderRadius: 6,
-                border: '1px solid #d1d5db',
-                background: '#f9fafb',
-                cursor: 'pointer',
-            }}
-            >
-            {expanded ? 'Collapse' : 'Expand'}
-            </button>
-            <button
-            onClick={() => setRenderMd((v) => !v)}
-            style={{
-                fontSize: 11,
-                padding: '4px 8px',
-                borderRadius: 6,
-                border: '1px solid #d1d5db',
-                background: renderMd ? '#e0e7ff' : '#f9fafb',
-                cursor: 'pointer',
-            }}
-            title="Toggle Markdown rendering"
-            >
-            {renderMd ? 'MD: On' : 'MD: Off'}
-            </button>
-        </div>
-      </div>
       <div
         style={{
           minHeight: 70,
@@ -156,7 +121,7 @@ export const OutputNode = ({ id, data, type }: NodeProps) => {
         className="nodrag nowheel"
         onMouseDown={(e) => startResize(e, 'right')}
         onClick={(e) => e.preventDefault()}
-        style={{ position: 'absolute', top: 28, right: -4, width: 8, height: 'calc(100% - 56px)', cursor: 'ew-resize' }}
+        style={{ position: 'absolute', top: 38, right: -4, width: 8, height: 'calc(100% - 76px)', cursor: 'ew-resize' }}
         title="Resize width"
       />
       <div
@@ -173,7 +138,7 @@ export const OutputNode = ({ id, data, type }: NodeProps) => {
         style={{ position: 'absolute', right: -4, bottom: -4, width: 12, height: 12, cursor: 'nwse-resize' }}
         title="Resize"
       />
-    </div>
+    </NodeShell>
   );
 };
 

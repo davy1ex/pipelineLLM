@@ -16,6 +16,9 @@ import {
   saveWorkflowToStorage,
   clearWorkflowFromStorage,
 } from './localStorage';
+import { getNodeHandles } from '../../../shared/lib/nodeHandles';
+import { getDataTypeConfig, type DataType } from '../../../shared/lib/dataTypes';
+import { MarkerType } from '@xyflow/react';
 
 interface WorkflowState {
   nodes: Node[];
@@ -62,6 +65,21 @@ const loadInitialState = () => {
 
 const initialState = loadInitialState();
 
+function colorizeEdges(edges: Edge[], nodes: Node[]): Edge[] {
+  return edges.map((e) => {
+    const sourceNode = nodes.find((n) => n.id === e.source);
+    if (!sourceNode) return e;
+    const handles = getNodeHandles(sourceNode.type);
+    const sourceHandleId = (e as any).sourceHandle as string | undefined;
+    const h = (handles.outputs || []).find((x) => x.id === sourceHandleId) || (handles.outputs || [])[0];
+    const dt = (h?.dataType || 'any') as DataType;
+    const c = getDataTypeConfig(dt);
+    const style = { ...(e.style || {}), stroke: c.borderColor, strokeWidth: 2 } as any;
+    const markerEnd = { type: MarkerType.ArrowClosed, color: c.borderColor } as any;
+    return { ...e, style, markerEnd } as Edge;
+  });
+}
+
 export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   nodes: initialState.nodes,
   edges: initialState.edges,
@@ -74,7 +92,7 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
 
   onEdgesChange: (changes) => {
     console.log('[workflowStore] onEdgesChange:', changes);
-    const newEdges = applyEdgeChanges(changes, get().edges);
+    const newEdges = colorizeEdges(applyEdgeChanges(changes, get().edges), get().nodes);
     console.log('[workflowStore] Edges after change:', newEdges.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle, targetHandle: e.targetHandle })));
     set({ edges: newEdges });
     saveToStorage(get().nodes, newEdges);
@@ -83,11 +101,11 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   onConnect: (connection) => {
     console.log('[workflowStore] onConnect called:', connection);
     const stepConnection = { ...connection, type: 'step' } as any;
-    const newEdges = addEdge(stepConnection, get().edges);
+    const colored = colorizeEdges(addEdge(stepConnection, get().edges), get().nodes);
     console.log('[workflowStore] New edge added:', stepConnection);
-    console.log('[workflowStore] Total edges now:', newEdges.length);
-    set({ edges: newEdges });
-    saveToStorage(get().nodes, newEdges);
+    console.log('[workflowStore] Total edges now:', colored.length);
+    set({ edges: colored });
+    saveToStorage(get().nodes, colored);
   },
 
   setNodes: (nodes) => {
@@ -96,8 +114,9 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   },
 
   setEdges: (edges) => {
-    set({ edges });
-    saveToStorage(get().nodes, edges);
+    const colored = colorizeEdges(edges, get().nodes);
+    set({ edges: colored });
+    saveToStorage(get().nodes, colored);
   },
 
   addNode: (node) => {

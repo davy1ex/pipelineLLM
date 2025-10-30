@@ -136,7 +136,7 @@ export const WorkFlowPage = () => {
                 <div style={{ position: 'relative', width: '100%', flex: 1, overflow: 'hidden' }}>
                     <CanvasFrame />
                     <Toolbar />
-                    <PropertyPanel />
+                    {/* <PropertyPanel /> */}
                 </div>
             </NodeActionsProvider>
             <LogExecution logExecution={logExecution} />
