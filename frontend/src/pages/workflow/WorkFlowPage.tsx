@@ -6,6 +6,7 @@ import { PropertyPanel } from '../../widgets/property-panel'
 import { NodeActionsProvider } from '../../features/canvas/ui/NodeActionsContext'
 import { Header } from '../../widgets/header'
 import { executeWorkflow } from '../../features/workflow-execution'
+import { exportWorkflow, parseWorkflowFile } from '../../features/canvas/lib/workflowIO'
 
 export const WorkFlowPage = () => {
     const setNodes = useWorkflowStore((state) => state.setNodes)
@@ -167,9 +168,29 @@ export const WorkFlowPage = () => {
         }
     }
 
+    const handleExport = () => {
+        exportWorkflow(nodes, edges)
+    };
+
+    const handleImport = async (file: File) => {
+        try {
+            const wf = await parseWorkflowFile(file)
+            console.log('[WorkFlowPage] Importing workflow:', {
+                nodes: wf.nodes.length,
+                edges: wf.edges.length,
+                version: wf.version,
+            })
+            setNodes(wf.nodes)
+            setEdges(wf.edges)
+        } catch (e) {
+            console.error('Failed to import workflow:', e)
+            alert(`Failed to import workflow: ${e instanceof Error ? e.message : String(e)}`)
+        }
+    };
+
     return (
         <div style={{ height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-            <Header handleStart={handleRun} isRunning={isRunning} />
+            <Header handleStart={handleRun} isRunning={isRunning} onExport={handleExport} onImport={handleImport} />
             <NodeActionsProvider value={{ updateNodeData, getIncomingData }}>
                 <div style={{ position: 'relative', width: '100%', flex: 1, overflow: 'hidden' }}>
                     <CanvasFrame />
