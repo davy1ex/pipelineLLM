@@ -6,6 +6,7 @@ export interface OllamaChatRequest {
   url: string;
   model: string;
   prompt: string;
+  system?: string;
   temperature?: number;
 }
 
@@ -33,6 +34,7 @@ export const callOllama = async (request: OllamaChatRequest): Promise<OllamaChat
         url: request.url,
         model: request.model,
         prompt: request.prompt,
+        system: request.system,
         temperature: request.temperature ?? 0.7,
       }),
     });

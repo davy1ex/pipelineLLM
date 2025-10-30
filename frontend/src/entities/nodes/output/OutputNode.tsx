@@ -1,3 +1,4 @@
+import React from 'react';
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import { useNodeActions } from '../../../features/canvas/ui/NodeActionsContext';
 import { HandleLabel } from '../../../shared/ui/HandleLabel';
@@ -6,9 +7,32 @@ export const OutputNode = ({ id, data, type }: NodeProps) => {
   const { getIncomingData } = useNodeActions();
   const label: string = (data as any)?.label ?? 'Output Preview';
   
-  // Get text from connected node (e.g., Ollama output)
+  // Priority: 1) data.text (updated from workflow execution), 2) incoming data from connected node
+  const nodeText = (data as any)?.text || '';
   const incomingData = (getIncomingData(id as string) as any) || {};
-  const text: string = incomingData.text || incomingData.output || incomingData.value || (data as any)?.text || '';
+  const incomingText = incomingData.text || incomingData.output || incomingData.value || '';
+  
+  // Use node's own text if set (from workflow execution), otherwise use incoming data
+  const text: string = nodeText || incomingText;
+  
+  // Debug logging - only log when text changes or on first render
+  // Use a ref to track previous text to avoid spam
+  const prevTextRef = React.useRef<string>('');
+  const hasChanged = prevTextRef.current !== text;
+  
+  if (hasChanged || !prevTextRef.current) {
+    console.log(`[OutputNode ${id}] ${hasChanged ? '🔄 TEXT CHANGED' : '🆕 FIRST RENDER'}:`, {
+      nodeText: nodeText,
+      nodeTextLength: nodeText?.length || 0,
+      incomingText: incomingText,
+      incomingTextLength: incomingText?.length || 0,
+      finalText: text,
+      finalTextLength: text?.length || 0,
+      dataKeys: Object.keys(data || {}),
+      willDisplay: text || 'No content yet',
+    });
+    prevTextRef.current = text;
+  }
 
   return (
     <div

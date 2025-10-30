@@ -69,6 +69,7 @@ def ollama_chat():
         ollama_url = data.get('url', 'http://localhost:11434')
         model = data.get('model', 'llama3.2')
         prompt = data.get('prompt', '')
+        system = data.get('system')  # Optional system prompt
         temperature = data.get('temperature', 0.7)
 
         if not prompt:
@@ -90,6 +91,11 @@ def ollama_chat():
                 'temperature': temperature
             }
         }
+        
+        # Add system prompt if provided
+        if system:
+            payload['system'] = system
+            logger.info(f'System prompt: {system[:100]}...')
 
         logger.info(f'Calling Ollama: {ollama_endpoint} with model: {model}')
         logger.info(f'Prompt: {prompt[:100]}...')
