@@ -17,7 +17,9 @@ export const TextInputNode = ({ id, data, type }: NodeProps) => {
       connectors={[
         { id: 'output', type: 'source', position: Position.Right, label: 'output', dataType: 'string' },
       ]}
-      controls={[]}
+      controls={[
+        { key: 'value', label: 'value', value: value, placeholder: 'Enter text...' },
+      ]}
     >
       <textarea
         value={value}

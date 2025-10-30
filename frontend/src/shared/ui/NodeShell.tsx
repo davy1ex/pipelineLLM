@@ -88,41 +88,41 @@ export const NodeShell: React.FC<NodeShellProps> = ({
       {/* connectors container: absolute connectors + vertical label columns */}
         {connectors && Array.isArray(connectors) && connectors.map((connector: any) => {
             return (
-              <div className="connectoins-container" style={{ display: 'flex', flexFlow: 'column', gap: 8}}>
-            <div 
-                key={connector.id} 
-                ref={connectorRowRefs?.inputs?.[connector.id]} 
-                className="connector-row" 
-                style={{ 
-                    // width: '100px',
-                    display: 'flex', 
-                    alignSelf: connector.type === 'target' ? 'flex-start' : 'flex-end', 
-                    flexDirection: connector.type === 'target' ? 'row' : 'row-reverse', 
-                    alignItems: 'flex-start', 
-                    justifyContent: 'center', gap: 8
-                }}>
-                <Handle {...connector} className="connector-handle" style={{ 
-                    borderRadius: 4, 
-                    height: "20px",
-                    margin: "auto 0",
-                    width: "30px", 
-                    backgroundColor: getDataTypeColor(connector.dataType || 'any'), 
-                    border: `1px solid ${getDataTypeConfig(connector.dataType || 'any').borderColor}`,
-                }} />
-                <div className="connector-label" style={{ 
-                    fontSize: 11, 
-                    color: getDataTypeConfig(connector.dataType || 'any').color, 
-                    padding: '4px 6px', 
-                    borderRadius: 4, 
-                    background: getDataTypeConfig(connector.dataType || 'any').backgroundColor, 
-                    border: `1px solid ${getDataTypeConfig(connector.dataType || 'any').borderColor}`,
-                    // width: '100%',
-                    textAlign: 'center',
-                }}>
-                    {connector.label}
+              <div className="connectoins-container" style={{ display: 'flex', flexFlow: 'column', gap: 8, }}>
+                <div 
+                    key={connector.id} 
+                    ref={connectorRowRefs?.inputs?.[connector.id]} 
+                    className="connector-row" 
+                    style={{ 
+                        // width: '100px',
+                        display: 'flex', 
+                        alignSelf: connector.type === 'target' ? 'flex-start' : 'flex-end', 
+                        flexDirection: connector.type === 'target' ? 'row' : 'row-reverse', 
+                        alignItems: 'flex-start', 
+                        justifyContent: 'center', gap: 8
+                    }}>
+                    <Handle {...connector} className="connector-handle" style={{ 
+                        borderRadius: 4, 
+                        height: "20px",
+                        margin: "auto 0",
+                        width: "30px", 
+                        backgroundColor: getDataTypeColor(connector.dataType || 'any'), 
+                        border: `1px solid ${getDataTypeConfig(connector.dataType || 'any').borderColor}`,
+                    }} />
+                    <div className="connector-label" style={{ 
+                        fontSize: 11, 
+                        color: getDataTypeConfig(connector.dataType || 'any').color, 
+                        padding: '4px 6px', 
+                        borderRadius: 4, 
+                        background: getDataTypeConfig(connector.dataType || 'any').backgroundColor, 
+                        border: `1px solid ${getDataTypeConfig(connector.dataType || 'any').borderColor}`,
+                        // width: '100%',
+                        textAlign: 'center',
+                    }}>
+                        {connector.label}
+                    </div>
                 </div>
-            </div>
-        </div>      
+            </div>      
           )
         })}
 
@@ -154,7 +154,7 @@ const ControlsList: React.FC<{
   const [viewKey, setViewKey] = React.useState<string | null>(null)
 
   return (
-    <div style={{width: 500, padding: '8px 10px', borderBottom: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: 6 }}>
+    <div style={{padding: '8px 10px', borderBottom: '1px solid #f1f5f9', display: 'flex', flexDirection: 'column', gap: 6 }}>
       {controls.map((c) => {
         const isEditing = editingKey === c.key && c.editable && !c.connected
         const isViewing = viewKey === c.key

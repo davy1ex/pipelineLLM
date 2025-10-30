@@ -1,6 +1,5 @@
-import { Handle, Position, type NodeProps } from '@xyflow/react';
+import { Position, type NodeProps } from '@xyflow/react';
 import { useNodeActions } from '../../../features/canvas/ui/NodeActionsContext';
-import { HandleLabel } from '../../../shared/ui/HandleLabel';
 import { NodeShell } from '../../../shared/ui/NodeShell';
 
 export const OllamaNode = ({ id, data, type }: NodeProps) => {

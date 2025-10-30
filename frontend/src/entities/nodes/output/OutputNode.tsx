@@ -12,7 +12,7 @@ export const OutputNode = ({ id, data }: NodeProps) => {
   const md = React.useMemo(() => new MarkdownIt({ html: false, linkify: true, breaks: true }), []);
   // Resizable width/height with persistence
   const [size, setSize] = React.useState<{ width: number; height: number }>(() => ({
-    width: (data as any)?.width ?? 360,
+    width: (data as any)?.width ?? 500,
     height: (data as any)?.height ?? 160,
   }));
   React.useEffect(() => {
@@ -32,8 +32,8 @@ export const OutputNode = ({ id, data }: NodeProps) => {
     const onMove = (e: MouseEvent) => {
       const r = resRef.current; if (!r.active) return;
       let w = r.sw, h = r.sh;
-      if (r.mode === 'right' || r.mode === 'corner') w = Math.max(240, Math.min(900, r.sw + (e.clientX - r.sx)));
-      if (r.mode === 'bottom' || r.mode === 'corner') h = Math.max(100, Math.min(900, r.sh + (e.clientY - r.sy)));
+      if (r.mode === 'right' || r.mode === 'corner') w = Math.max(240, r.sw + (e.clientX - r.sx));
+      if (r.mode === 'bottom' || r.mode === 'corner') h = Math.max(100, r.sh + (e.clientY - r.sy));
       setSize({ width: w, height: h });
     };
     const onUp = () => {
@@ -75,20 +75,35 @@ export const OutputNode = ({ id, data }: NodeProps) => {
 
   const renderMarkdown = (src: string) => md.render(src || '');
 
+  const handleExpand = () => {
+    setExpanded((v) => !v);
+    if (!expanded) {
+      const el = document.querySelector('.output-node-content');
+      if (!el) return;
+      const desiredWidth = Math.max(240, Math.min(1200, el.scrollWidth + 48));
+      const desiredHeight = Math.max(100, Math.min(1600, el.scrollHeight));
+      setSize({ width: desiredWidth, height: desiredHeight });
+      updateNodeData(id as string, { width: desiredWidth, height: desiredHeight });
+      console.log('Expanded output node', { width: desiredWidth, height: desiredHeight });
+    }
+  };
+
   return (
     <NodeShell
       title={label}
       width={size.width}
       headerActions={
         <>
-          <button onClick={() => setExpanded((v) => !v)} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', background: '#f9fafb', cursor: 'pointer' }}>{expanded ? 'Collapse' : 'Expand'}</button>
+          <button onClick={handleExpand} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', background: '#f9fafb', cursor: 'pointer' }}>{expanded ? 'Collapse' : 'Expand'}</button>
           <button onClick={() => setRenderMd((v) => !v)} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', background: renderMd ? '#e0e7ff' : '#f9fafb', cursor: 'pointer' }} title="Toggle Markdown rendering">{renderMd ? 'MD: On' : 'MD: Off'}</button>
         </>
       }
       connectors={[
         { id: 'text', type: 'target', position: Position.Left, label: 'text', dataType: 'string' },
       ]}
-      controls={[]}
+      controls={[
+        { key: 'text', label: 'text', value: text, placeholder: 'Enter text...' },
+      ]}
     >
       <div
         style={{
@@ -106,7 +121,7 @@ export const OutputNode = ({ id, data }: NodeProps) => {
           height: expanded ? size.height : Math.min(size.height, 140),
           textAlign: 'left',
         }}
-        className="nodrag nowheel"
+        className="nodrag nowheel output-node-content"
         onMouseDown={(e) => { e.stopPropagation(); }}
       >
         {renderMd ? (
