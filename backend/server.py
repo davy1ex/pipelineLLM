@@ -24,31 +24,6 @@ def log_request_info():
     if request.data:
         logger.info('Body: %s', request.get_data())
 
-@app.route('/api/health', methods=['GET'])
-def health_check():
-    logger.info('Health check called')
-    return jsonify({
-        'status': 'healthy',
-        'message': 'Backend is running'
-    }), 200
-
-@app.route('/api/hello', methods=['GET'])
-def hello():
-    name = request.args.get('name', 'World')
-    logger.info(f'Hello endpoint called with name: {name}')
-    return jsonify({
-        'message': f'Hello, {name}!',
-        'timestamp': request.headers.get('Date')
-    }), 200
-
-@app.route('/api/data', methods=['POST'])
-def create_data():
-    data = request.get_json()
-    logger.info(f'Data received: {data}')
-    return jsonify({
-        'received': data,
-        'status': 'success'
-    }), 201
 
 @app.route('/api/ollama/chat', methods=['POST'])
 def ollama_chat():
