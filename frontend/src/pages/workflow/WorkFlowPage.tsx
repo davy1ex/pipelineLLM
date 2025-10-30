@@ -5,8 +5,10 @@ import { Toolbar } from '../../widgets/toolbar'
 import { PropertyPanel } from '../../widgets/property-panel'
 import { NodeActionsProvider } from '../../features/canvas/ui/NodeActionsContext'
 import { Header } from '../../widgets/header'
-import { executeWorkflow } from '../../features/workflow-execution'
+import { LogExecution } from '../../features/workflow-execution'
+import { runWorkflow } from '../../features/workflow-execution/lib/runWorkflow'
 import { exportWorkflow, parseWorkflowFile } from '../../features/canvas/lib/workflowIO'
+import { useExecutionStore } from '../../features/workflow-execution/model/executionStore'
 
 export const WorkFlowPage = () => {
     const setNodes = useWorkflowStore((state) => state.setNodes)
@@ -16,6 +18,7 @@ export const WorkFlowPage = () => {
     const edges = useWorkflowStore((state) => state.edges)
     const [isRunning, setIsRunning] = useState(false)
     const [isLoaded, setIsLoaded] = useState(false)
+    const logExecution = useExecutionStore((state) => state.logExecution)
 
     useEffect(() => {
         // Load from localStorage on mount (state is already loaded in store initialization, but we check)
@@ -89,77 +92,15 @@ export const WorkFlowPage = () => {
 
     const handleRun = async () => {
         if (isRunning) return
-
+        setIsRunning(true)
         try {
-            console.log('[WorkFlowPage] Starting workflow execution...')
-            console.log('[WorkFlowPage] Current nodes:', nodes.map(n => ({ id: n.id, type: n.type })))
-            console.log('[WorkFlowPage] Current edges:', edges.map(e => ({ id: e.id, source: e.source, target: e.target, sourceHandle: e.sourceHandle, targetHandle: e.targetHandle })))
-            
-            setIsRunning(true)
-            const result = await executeWorkflow({ nodes, edges })
-            
-            console.log('[WorkFlowPage] Execution result:', {
-                hasNodeResults: !!result.nodeResults,
-                hasOutputUpdates: !!result.outputUpdates,
-                outputNodeId: result.outputNodeId,
+            await runWorkflow({
+                nodes,
+                edges,
+                updateNodeData,
+                getCurrentNodes: () => getWorkflowStore.getState().nodes,
+                verbose: true,
             })
-            
-            // Update all Ollama nodes with their results
-            if (result.nodeResults) {
-                const nodeResults = result.nodeResults as Record<string, string>
-                console.log('[WorkFlowPage] Updating Ollama nodes:', Object.keys(nodeResults))
-                Object.entries(nodeResults).forEach(([nodeId, response]) => {
-                    console.log(`[WorkFlowPage] Updating Ollama node ${nodeId} with response (${response.length} chars)`)
-                    updateNodeData(nodeId, {
-                        lastResponse: response,
-                    })
-                })
-            }
-            
-            // Update all Output nodes connected to Ollama nodes
-            if (result.outputUpdates) {
-                const outputUpdates = result.outputUpdates as Record<string, string>
-                console.log('[WorkFlowPage] Updating Output nodes:', Object.keys(outputUpdates))
-                Object.entries(outputUpdates).forEach(([outputNodeId, response]) => {
-                    console.log(`[WorkFlowPage] Updating Output node ${outputNodeId} with text: "${response.slice(0, 100)}..." (${response.length} chars)`)
-                    const outputNode = nodes.find(n => n.id === outputNodeId)
-                    console.log(`[WorkFlowPage] Output node found:`, !!outputNode, outputNode ? { id: outputNode.id, type: outputNode.type, currentData: outputNode.data } : null)
-                    
-                    updateNodeData(outputNodeId, {
-                        text: response,
-                    })
-                    
-                    // Verify update - get fresh state from store
-                    setTimeout(() => {
-                        const freshNodes = getWorkflowStore.getState().nodes;
-                        const updatedNode = freshNodes.find(n => n.id === outputNodeId);
-                        const text = (updatedNode?.data as any)?.text || '';
-                        console.log(`[WorkFlowPage] After update, Output node ${outputNodeId}:`, {
-                            found: !!updatedNode,
-                            textLength: text.length,
-                            textPreview: text.slice(0, 50),
-                        });
-                    }, 100)
-                })
-            } else if (result.outputNodeId) {
-                // Fallback: update single output node with final response
-                console.log('[WorkFlowPage] Fallback: updating single output node', result.outputNodeId)
-                updateNodeData(result.outputNodeId as string, {
-                    text: result.ollamaResponse,
-                })
-            } else {
-                // If no output node connected, find any output node or show alert
-                const outputNode = nodes.find((n) => n.type === 'output')
-                if (outputNode) {
-                    console.log('[WorkFlowPage] No outputUpdates, updating any output node:', outputNode.id)
-                    updateNodeData(outputNode.id, {
-                        text: result.ollamaResponse,
-                    })
-                } else {
-                    console.warn('[WorkFlowPage] No output node found, showing alert')
-                    alert(`Ollama response:\n\n${result.ollamaResponse}`)
-                }
-            }
         } catch (error) {
             console.error('Workflow execution error:', error)
             alert(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`)
@@ -198,6 +139,7 @@ export const WorkFlowPage = () => {
                     <PropertyPanel />
                 </div>
             </NodeActionsProvider>
+            <LogExecution logExecution={logExecution} />
         </div>
     )
 }
