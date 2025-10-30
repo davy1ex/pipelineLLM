@@ -75,7 +75,22 @@ def ollama_chat():
         if not prompt:
             return jsonify({'error': 'Prompt is required'}), 400
 
-        # Convert localhost/docker.host.internal to host.docker.internal for Docker access
+        # Normalize provided Ollama URL: it should be the BASE URL of Ollama (scheme+host[:port])
+        # - Add http:// if missing scheme
+        # - Strip any trailing /api/* path if user pasted a full endpoint
+        try:
+            from urllib.parse import urlparse, urlunparse
+            parsed = urlparse(ollama_url if '://' in ollama_url else f'http://{ollama_url}')
+            # Remove known api paths if present
+            clean_path = parsed.path.rstrip('/')
+            if clean_path.startswith('/api/') or clean_path in ('/api', '/api/generate', '/api/chat'):
+                parsed = parsed._replace(path='', params='', query='', fragment='')
+            ollama_url = urlunparse(parsed)
+        except Exception:
+            # Keep original if parsing fails; we'll handle errors on request
+            pass
+
+        # Convert localhost/127.0.0.1/docker.host.internal to host.docker.internal for Docker access only for those hosts
         if 'localhost' in ollama_url or '127.0.0.1' in ollama_url:
             ollama_url = ollama_url.replace('localhost', 'host.docker.internal').replace('127.0.0.1', 'host.docker.internal')
         elif 'docker.host.internal' in ollama_url:
@@ -140,9 +155,14 @@ def ollama_chat():
             'error': f'Cannot connect to Ollama at {ollama_url}. Make sure Ollama is running.'
         }), 503
     except requests.exceptions.RequestException as e:
-        logger.error(f'Ollama API error: {str(e)}')
+        # Try to extract response details
+        status = getattr(getattr(e, 'response', None), 'status_code', None)
+        body = getattr(getattr(e, 'response', None), 'text', '')
+        logger.error(f'Ollama API error: {str(e)} (status={status}) body={body[:300]}')
         return jsonify({
-            'error': f'Failed to call Ollama API: {str(e)}'
+            'error': f'Failed to call Ollama API: {str(e)}',
+            'status': status,
+            'response': body[:1000],
         }), 500
     except Exception as e:
         logger.error(f'Unexpected error: {str(e)}', exc_info=True)
