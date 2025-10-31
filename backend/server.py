@@ -1,9 +1,12 @@
 from flask import Flask, jsonify, request
+from flask import send_file
 from flask_cors import CORS
 import os
 import logging
 import requests
 from typing import Optional
+import os
+import uuid
 
 app = Flask(__name__)
 
@@ -144,6 +147,45 @@ def ollama_chat():
         return jsonify({
             'error': f'Internal server error: {str(e)}'
         }), 500
+
+@app.route('/api/files/create', methods=['POST'])
+def create_file():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Request body is required'}), 400
+
+        content = data.get('content', '')
+        filename = data.get('filename', 'result.txt')
+
+        base_dir = os.path.join('/tmp', 'pipeline_files')
+        os.makedirs(base_dir, exist_ok=True)
+        file_id = str(uuid.uuid4())
+        safe_name = filename.replace('/', '_').replace('..', '_')
+        file_path = os.path.join(base_dir, f"{file_id}__{safe_name}")
+
+        with open(file_path, 'w', encoding='utf-8') as f:
+            f.write(content)
+
+        size = os.path.getsize(file_path)
+        return jsonify({ 'fileId': file_id, 'filename': safe_name, 'size': size }), 200
+    except Exception as e:
+        logger.error(f'Failed to create file: {str(e)}', exc_info=True)
+        return jsonify({ 'error': f'Internal server error: {str(e)}' }), 500
+
+@app.route('/api/files/download/<file_id>', methods=['GET'])
+def download_file(file_id: str):
+    try:
+        base_dir = os.path.join('/tmp', 'pipeline_files')
+        # find file by id prefix
+        for name in os.listdir(base_dir):
+            if name.startswith(file_id + "__"):
+                file_path = os.path.join(base_dir, name)
+                return send_file(file_path, as_attachment=True, download_name=name.split('__',1)[1])
+        return jsonify({ 'error': 'File not found' }), 404
+    except Exception as e:
+        logger.error(f'Failed to download file: {str(e)}', exc_info=True)
+        return jsonify({ 'error': f'Internal server error: {str(e)}' }), 500
 
 @app.route('/api/python/execute', methods=['POST'])
 def python_execute():
