@@ -62,7 +62,7 @@ type Connector = {
 }
 ```
 
-`NodeShell` renders handles without absolute positioning (scoped CSS override) so labels and handles align in rows.
+`NodeShell` рендерит хэндлы без абсолютного позиционирования (scoped CSS override), чтобы лейблы и хэндлы выстраивались в одну строку.
 
 ### Node Properties Explained
 
@@ -597,6 +597,10 @@ All nodes use `type: 'default'`:
 ```
 
 ### Execution Order
+Python узлы выполняются первыми (в топологическом порядке), затем Ollama. Для входов Ollama/Python приоритет:
+1) Кэшированный результат подключённого узла (nodeResults) — если источник уже выполнялся
+2) Поля `sourceNode.data`: `value` → `text` → `output`
+3) Для `systemPrompt`: сначала edge на handle `systemPrompt`, затем fallback к `node.data.systemPrompt`
 
 ReactFlow/workflow engine determines execution order based on **topology**:
 

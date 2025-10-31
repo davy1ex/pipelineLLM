@@ -50,11 +50,21 @@ Detailed documentation for `workflowStore` (Zustand):
 
 **Read this** to understand workflow state management.
 
+### [EXECUTION.md](./EXECUTION.md)
+Как запускается выполнение, порядок исполнения (Python → Ollama), правила входов/выходов, и как расширять двигатель (условия/циклы/новые узлы).
+
+### [PYTHON_NODE.md](./PYTHON_NODE.md)
+Подробно о PythonNode:
+- Как исполняется код
+- Что такое `input_data` и `output`
+- Как подключать новые библиотеки (requirements/Docker)
+
 ### Node specifics (current)
 - TextInputNode: local input state prevents caret jump; right `output`
 - SettingsNode: emits `config` (url, model, temperature)
-- OllamaNode: `prompt`, `systemPrompt`, `config` inputs; incoming edges override local data
-- OutputNode: autosize on content/expand, markdown rendering with wrap at ~1200px
+- OllamaNode: `prompt`, `systemPrompt`, `config` inputs; incoming edges override local data; в исполнении приоритет у входящих
+- PythonNode: `input` → `output`, выполняет код на backend, результат берётся из переменной `output` (или stdout)
+- OutputNode: autosize на контент/expand, markdown wrap при ~1200px
 
 ## 🎯 Quick Links
 

@@ -178,7 +178,7 @@ export const WorkFlowPage = () => {
 2) Store updates → CanvasFrame re-renders ReactFlow → new node appears
 3) Node updates its own data via `NodeActionsContext.updateNodeData(id, patch)`
 4) Edges are always created as `type: 'step'` for consistent left→right connectors
-5) Nodes describe connectors via `connectors` array (handled/laid out by `NodeShell`)
+5) Nodes describe connectors via `connectors` array (rendered рядами в `NodeShell`)
 
 ## TypeScript & Patterns
 
@@ -190,8 +190,9 @@ export const WorkFlowPage = () => {
 
 - TextInputNode: right `output`; local input state to avoid caret jump
 - SettingsNode: right `config` (url, model, temperature)
-- OllamaNode: left `prompt`, left `systemPrompt`, left `config`, right `output`; UI merges own data and incoming; execution prioritizes incoming handles
-- OutputNode: left `text`; markdown rendering with autosize/expand
+- OllamaNode: left `prompt`, left `systemPrompt`, left `config`, right `output`; UI объединяет локальные данные с входящими; во время исполнения приоритет у входящих
+- PythonNode: left `input`, right `output`; выполняет Python код на backend, результат берётся из переменной `output` (или stdout) и идёт дальше
+- OutputNode: left `text`; markdown rendering + autosize/expand, перенос при ~1200px
 
 ## Performance
 

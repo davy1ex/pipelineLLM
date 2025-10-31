@@ -44,6 +44,11 @@ const nodeTypes = {
 - UI reads own `data` merged with incoming handles; during execution, incoming handles take precedence
 
 ### SettingsNode
+### PythonNode
+- Purpose: выполнить Python код на backend
+- Inputs (left): `input` — строка из подключённого узла (TextInput/Ollama/Python)
+- Output (right): `output` — результат, полученный из переменной `output` в коде (или stdout)
+- Execution: выполняется раньше Ollama; входной `input_data` инжектируется в код как переменная
 - Purpose: provides configuration for LLM nodes (url, model, temperature)
 - Output (right): `config`
 
@@ -95,8 +100,8 @@ export const MyCustomNode = ({ data }: NodeProps) => {
     <NodeShell
       title={label}
       connectors={[
-        { type: 'target', position: Position.Left, label: 'input' },
-        { type: 'source', position: Position.Right, label: 'output' },
+        { id: 'input', type: 'target', position: Position.Left, label: 'input' },
+        { id: 'output', type: 'source', position: Position.Right, label: 'output' },
       ]}
     >
       {/* body */}

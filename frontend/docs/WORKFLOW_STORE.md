@@ -664,6 +664,16 @@ useEffect(() => {
 ```
 
 ## Resources
+## Adding/Changing Nodes
+
+1) Создайте компонент узла в `entities/nodes/<name>/<Name>Node.tsx` и используйте `NodeShell`.
+2) Опишите шаблон в `entities/nodes/<name>/template.ts` (id, label, type, default data).
+3) Зарегистрируйте шаблон в `entities/nodes/registry.ts` → `uiNodeTemplates`.
+4) Экспортируйте компонент в `entities/nodes/index.ts` и добавьте в `features/canvas/ui/CanvasFrame.tsx` в `nodeTypes` под своим `type`.
+
+Исполнение (если требуется):
+- Для HTTP/бэкенд вызовов добавьте клиент в `shared/api/*` и вызовите его из `features/workflow-execution/lib/executeWorkflow.ts`.
+- Для передачи данных дальше заполните `node.data.output` (или другое поле) — downstream узлы читают `value|text|output`.
 
 - [Zustand Documentation](https://zustand-demo.pmnd.rs/)
 - [ReactFlow State Management](https://reactflow.dev/learn/advanced-use/state-management)
