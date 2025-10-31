@@ -90,6 +90,7 @@ export const OutputNode = ({ id, data }: NodeProps) => {
 
   return (
     <NodeShell
+      nodeId={id as string}
       title={label}
       width={size.width}
       headerActions={

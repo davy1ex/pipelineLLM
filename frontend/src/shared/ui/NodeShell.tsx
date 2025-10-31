@@ -1,4 +1,5 @@
 import React from 'react'
+import { useExecutionStore } from '../../features/workflow-execution/model/executionStore'
 import { getDataTypeColor, getDataTypeConfig, type DataType } from '../lib/dataTypes'
 import { Handle, type Position } from '@xyflow/react'
 // Handles are not rendered here to avoid layout conflicts with ReactFlow absolute positioning.
@@ -13,6 +14,7 @@ type ConnectorConfig = {
 }
 
 type NodeShellProps = {
+  nodeId?: string
   title: string
   headerActions?: React.ReactNode
   connectors?: ConnectorConfig[]
@@ -37,6 +39,7 @@ type NodeShellProps = {
 }
 
 export const NodeShell: React.FC<NodeShellProps> = ({
+  nodeId,
   title,
   headerActions,
   connectors,
@@ -45,15 +48,21 @@ export const NodeShell: React.FC<NodeShellProps> = ({
   children,
   outerRef,
 }) => {
+  const runningIds = useExecutionStore((s) => s.runningNodeIds)
+  const completedIds = useExecutionStore((s) => s.completedNodeIds)
+  const isRunning = nodeId ? runningIds.includes(nodeId) : false
+  const isCompleted = nodeId ? completedIds.includes(nodeId) : false
+  const borderColor = isRunning ? '#60a5fa' : isCompleted ? '#34d399' : '#e5e7eb'
+  const glow = isRunning ? '0 0 0 2px rgba(59,130,246,0.15)' : '0 1px 3px rgba(0,0,0,0.06)'
   return (
     <div
       className="node-shell"
       style={{
         width: 500,
         background: 'white',
-        border: '1px solid #e5e7eb',
+        border: `1px solid ${borderColor}`,
         borderRadius: 8,
-        boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+        boxShadow: glow,
         position: 'relative',
         boxSizing: 'border-box',
         overflow: 'hidden',
@@ -61,6 +70,10 @@ export const NodeShell: React.FC<NodeShellProps> = ({
       }}
       ref={outerRef as any}
     >
+      {isRunning && (
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, background: 'linear-gradient(90deg, #93c5fd, #3b82f6, #93c5fd)', backgroundSize: '200% 100%', animation: 'node-run 1.2s linear infinite' }} />
+      )}
+      <style>{`@keyframes node-run{0%{background-position:0% 0}100%{background-position:200% 0}}`}</style>
         {/* header */}
       <div
         style={{

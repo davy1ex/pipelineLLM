@@ -42,24 +42,30 @@ export async function executePythonPhase(
     const escaped = (inputData ?? '').replace(/"""/g, '\\"""')
     const codeToExecute = `data_input = """${escaped}"""\ninput_data = data_input\n${code}`
 
+    // mark running
+    useExecutionStore.getState().startNode(pythonNode.id)
     useExecutionStore.getState().setLogExecution([
       ...useExecutionStore.getState().logExecution,
       `[executeWorkflow] Executing Python for node ${pythonNode.id}`
     ])
 
-    const response = await executePython({ code: codeToExecute })
-    const pythonOutput = response.output || response.stdout || ''
-    const pythonError = response.error || response.stderr || ''
+    try {
+      const response = await executePython({ code: codeToExecute })
+      const pythonOutput = response.output || response.stdout || ''
+      const pythonError = response.error || response.stderr || ''
 
-    pythonNode.data = { ...pythonNode.data, output: pythonOutput, lastError: pythonError || undefined }
-    nodeResults.set(pythonNode.id, pythonOutput)
+      pythonNode.data = { ...pythonNode.data, output: pythonOutput, lastError: pythonError || undefined }
+      nodeResults.set(pythonNode.id, pythonOutput)
 
-    // Fan-out to Output nodes
-    const outEdges = edges.filter((e) => e.source === pythonNode.id)
-      .filter((e) => (nodes.find((n) => n.id === e.target)?.type === 'output'))
-    for (const e of outEdges) outputUpdates.set(e.target, pythonOutput)
+      // Fan-out to Output nodes
+      const outEdges = edges.filter((e) => e.source === pythonNode.id)
+        .filter((e) => (nodes.find((n) => n.id === e.target)?.type === 'output'))
+      for (const e of outEdges) outputUpdates.set(e.target, pythonOutput)
 
-    try { onNodeDone?.({ node: pythonNode, response: pythonOutput, outputTargetIds: outEdges.map((e) => e.target) }) } catch {}
+      try { onNodeDone?.({ node: pythonNode, response: pythonOutput, outputTargetIds: outEdges.map((e) => e.target) }) } catch {}
+    } finally {
+      useExecutionStore.getState().finishNode(pythonNode.id)
+    }
   }
 
   return { nodeResults, outputUpdates, pythonExecutionOrder }

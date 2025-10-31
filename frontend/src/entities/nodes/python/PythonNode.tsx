@@ -34,6 +34,7 @@ export const PythonNode = ({ id, data }: NodeProps) => {
 
   return (
     <NodeShell
+      nodeId={id as string}
       title={label}
       connectors={[
         { id: 'input', type: 'target', position: Position.Left, label: 'input', dataType: 'string' },

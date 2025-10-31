@@ -23,6 +23,9 @@ export async function executeWorkflow(
 ): Promise<Record<string, unknown>> {
   const { nodes, edges } = context;
 
+  // reset execution indicators
+  useExecutionStore.getState().resetExecution();
+
   const nodeResults = new Map<string, string>();
   const outputUpdates = new Map<string, string>();
 
@@ -35,16 +38,15 @@ export async function executeWorkflow(
   while (progress) {
     progress = false
 
-    // Python phase (skip already executed)
+    // Python phase (re-exec per pass)
     const pyPhase = await executePythonPhase(nodes, edges, nodeResults, options?.onNodeDone)
-    // Merge results
     for (const [k, v] of pyPhase.nodeResults) {
       if (!nodeResults.has(k)) { nodeResults.set(k, v); progress = true }
     }
     for (const [k, v] of pyPhase.outputUpdates) outputUpdates.set(k, v)
     lastPythonOrder = pyPhase.pythonExecutionOrder
 
-    // Ollama phase (skip already executed)
+    // Ollama phase (re-exec per pass)
     const ollPhase = await executeOllamaPhase(nodes, edges, { defaultUrl: options?.defaultUrl, defaultModel: options?.defaultModel }, nodeResults, options?.onNodeDone)
     for (const [k, v] of ollPhase.nodeResults) {
       if (!nodeResults.has(k)) { nodeResults.set(k, v); progress = true }
@@ -52,13 +54,11 @@ export async function executeWorkflow(
     for (const [k, v] of ollPhase.outputUpdates) outputUpdates.set(k, v)
     lastExecutionOrder = ollPhase.executionOrder
 
-    // Guard: stop if count didn't grow
     const currentCount = nodeResults.size
     if (currentCount === lastResultsCount) break
     lastResultsCount = currentCount
   }
 
-  // Final response (for backward compatibility)
   let finalResponse = ''
   let lastNodeId: string | undefined
 
@@ -78,6 +78,9 @@ export async function executeWorkflow(
     ...useExecutionStore.getState().logExecution,
     `[executeWorkflow] Finalized. last node: ${lastNodeId || 'none'}, finalResponseLength: ${finalResponse.length}`
   ])
+
+  // mark all nodes as completed at the end of the run
+  useExecutionStore.getState().completeAll(nodes.map(n => n.id))
 
   return {
     ollamaResponse: finalResponse,

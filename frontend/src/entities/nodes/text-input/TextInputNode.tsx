@@ -22,6 +22,7 @@ export const TextInputNode = ({ id, data, type }: NodeProps) => {
 
   return (
     <NodeShell
+      nodeId={id as string}
       title={label}
       connectors={[
         { id: 'output', type: 'source', position: Position.Right, label: 'output', dataType: 'string' },

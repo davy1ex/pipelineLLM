@@ -38,6 +38,7 @@ export const OllamaNode = ({ id, data, type }: NodeProps) => {
 
   return (
     <NodeShell
+      nodeId={id as string}
       title={label}
       connectors={
         [

@@ -87,26 +87,31 @@ export async function executeOllamaPhase(
     const temperature = (inputs.temperature as number) ?? 0.7
     const systemPrompt = (inputs.systemPrompt as string) || undefined
 
+    useExecutionStore.getState().startNode(ollamaNode.id)
     useExecutionStore.getState().setLogExecution([
       ...useExecutionStore.getState().logExecution,
       `[executeWorkflow] Calling Ollama for node ${ollamaNode.id} (model=${model}, promptLen=${prompt.length})`
     ])
-    const response = await callOllama({ url, model, prompt, system: systemPrompt, temperature })
-    const ollamaResponse = response.response
-    nodeResults.set(ollamaNode.id, ollamaResponse)
+    try {
+      const response = await callOllama({ url, model, prompt, system: systemPrompt, temperature })
+      const ollamaResponse = response.response
+      nodeResults.set(ollamaNode.id, ollamaResponse)
 
-    ollamaNode.data = { ...ollamaNode.data, lastResponse: ollamaResponse }
+      ollamaNode.data = { ...ollamaNode.data, lastResponse: ollamaResponse }
 
-    const outputEdges = edges.filter((e) => e.source === ollamaNode.id)
-      .filter((e) => (nodes.find((n) => n.id === e.target)?.type === 'output'))
-    for (const e of outputEdges) outputUpdates.set(e.target, ollamaResponse)
+      const outputEdges = edges.filter((e) => e.source === ollamaNode.id)
+        .filter((e) => (nodes.find((n) => n.id === e.target)?.type === 'output'))
+      for (const e of outputEdges) outputUpdates.set(e.target, ollamaResponse)
 
-    try { onNodeDone?.({ node: ollamaNode, response: ollamaResponse, outputTargetIds: outputEdges.map((e) => e.target) }) } catch {}
+      try { onNodeDone?.({ node: ollamaNode, response: ollamaResponse, outputTargetIds: outputEdges.map((e) => e.target) }) } catch {}
 
-    useExecutionStore.getState().setLogExecution([
-      ...useExecutionStore.getState().logExecution,
-      `[executeWorkflow] Ollama node ${ollamaNode.id} completed: ${String(ollamaResponse).slice(0, 120)}`
-    ])
+      useExecutionStore.getState().setLogExecution([
+        ...useExecutionStore.getState().logExecution,
+        `[executeWorkflow] Ollama node ${ollamaNode.id} completed: ${String(ollamaResponse).slice(0, 120)}`
+      ])
+    } finally {
+      useExecutionStore.getState().finishNode(ollamaNode.id)
+    }
   }
 
   return { nodeResults, outputUpdates, executionOrder }
