@@ -1,5 +1,5 @@
 import type { Node, Edge } from '@xyflow/react';
-import { callOllama } from '../../../shared/api';
+import { callOllama, executePython } from '../../../shared/api';
 import { useExecutionStore } from '../model/executionStore'
 
 interface WorkflowExecutionContext {
@@ -66,8 +66,8 @@ function resolveOllamaInputs(
     if (defaultEdge) {
       const sourceNode = nodes.find((n) => n.id === defaultEdge.source);
       if (sourceNode) {
-        // If source is Ollama, use its cached result
-        if (sourceNode.type === 'ollama' && nodeResults.has(sourceNode.id)) {
+        // Check nodeResults first (for executed nodes like Ollama or Python)
+        if ((sourceNode.type === 'ollama' || sourceNode.type === 'python') && nodeResults.has(sourceNode.id)) {
           resolved.prompt = nodeResults.get(sourceNode.id)!;
         } else {
           // Otherwise use node data
@@ -77,15 +77,16 @@ function resolveOllamaInputs(
       }
     }
   } else {
-    const sourceNode = nodes.find((n) => n.id === promptEdge.source);
-    if (sourceNode) {
-      if (sourceNode.type === 'ollama' && nodeResults.has(sourceNode.id)) {
-        resolved.prompt = nodeResults.get(sourceNode.id)!;
-      } else {
-        const sourceData = sourceNode.data as any;
-        resolved.prompt = sourceData?.value || sourceData?.text || sourceData?.output || '';
+      const sourceNode = nodes.find((n) => n.id === promptEdge.source);
+      if (sourceNode) {
+        // Check nodeResults first (for executed nodes)
+        if ((sourceNode.type === 'ollama' || sourceNode.type === 'python') && nodeResults.has(sourceNode.id)) {
+          resolved.prompt = nodeResults.get(sourceNode.id)!;
+        } else {
+          const sourceData = sourceNode.data as any;
+          resolved.prompt = sourceData?.value || sourceData?.text || sourceData?.output || '';
+        }
       }
-    }
   }
 
   // Get system prompt from 'systemPrompt' handle
@@ -171,7 +172,40 @@ function getOllamaExecutionOrder(nodes: Node[], edges: Edge[]): Node[] {
 }
 
 /**
- * Execute workflow - traverse graph and call Ollama API for all Ollama nodes
+ * Topological sort of Python nodes based on dependencies
+ */
+function getPythonExecutionOrder(nodes: Node[], edges: Edge[]): Node[] {
+  const pythonNodes = nodes.filter((n) => n.type === 'python');
+  const visited = new Set<string>();
+  const result: Node[] = [];
+
+  function visit(node: Node) {
+    if (visited.has(node.id)) return;
+
+    visited.add(node.id);
+
+    // Find dependencies (nodes feeding into this Python node)
+    const dependencies = edges
+      .filter((e) => e.target === node.id)
+      .map((e) => nodes.find((n) => n.id === e.source))
+      .filter((n): n is Node => n !== undefined && (n.type === 'python' || n.type === 'textInput' || n.type === 'ollama'));
+
+    for (const dep of dependencies) {
+      visit(dep);
+    }
+
+    result.push(node);
+  }
+
+  for (const node of pythonNodes) {
+    visit(node);
+  }
+
+  return result;
+}
+
+/**
+ * Execute workflow - traverse graph and call Ollama API for all Ollama nodes and execute Python nodes
  */
 export async function executeWorkflow(
   context: WorkflowExecutionContext,
@@ -179,20 +213,128 @@ export async function executeWorkflow(
 ): Promise<Record<string, unknown>> {
   const { nodes, edges } = context;
 
+  // Store results of each node (Ollama and Python)
+  const nodeResults = new Map<string, string>();
+  // Store which Output nodes should be updated
+  const outputUpdates = new Map<string, string>();
+
+  // Execute Python nodes first (before Ollama, if they feed into Ollama)
+  const pythonNodes = nodes.filter((n) => n.type === 'python');
+  let pythonExecutionOrder: Node[] = [];
+  if (pythonNodes.length > 0) {
+    pythonExecutionOrder = getPythonExecutionOrder(nodes, edges);
+    
+    for (const pythonNode of pythonExecutionOrder) {
+      const code = (pythonNode.data as any)?.code || '';
+      if (!code.trim()) {
+        console.warn(`[executeWorkflow] Python node ${pythonNode.id} has no code, skipping`);
+        continue;
+      }
+
+      // Get input data from connected nodes (via 'input' handle or default)
+      const inputEdge = edges.find((e) => 
+        e.target === pythonNode.id && (e.targetHandle === 'input' || !e.targetHandle)
+      );
+      let inputData: string | undefined;
+      if (inputEdge) {
+        const sourceNode = nodes.find((n) => n.id === inputEdge.source);
+        if (sourceNode) {
+          const sourceData = sourceNode.data as any;
+          // For Python nodes, also check nodeResults (for results from other executed nodes)
+          if (sourceNode.type === 'python' && nodeResults.has(sourceNode.id)) {
+            inputData = nodeResults.get(sourceNode.id)!;
+          } else if (sourceNode.type === 'ollama' && nodeResults.has(sourceNode.id)) {
+            inputData = nodeResults.get(sourceNode.id)!;
+          } else {
+            inputData = sourceData?.value || sourceData?.text || sourceData?.output || '';
+          }
+        }
+      }
+
+      // Inject input data into code if available
+      let codeToExecute = code;
+      if (inputData) {
+        // Prepend input data as a variable (both names for compatibility)
+        const escapedData = inputData.replace(/"""/g, '\\"""');
+        codeToExecute = `data_input = """${escapedData}"""\ninput_data = data_input  # alias for backward compatibility\n${code}`;
+      }
+
+      console.log(`[executeWorkflow] Executing Python for node ${pythonNode.id}:`, {
+        codeLength: code.length,
+        hasInput: !!inputData,
+      });
+
+      try {
+        const response = await executePython({ code: codeToExecute });
+        
+        // Extract output from response (prioritize output variable, fallback to stdout)
+        const pythonOutput = response.output || response.stdout || '';
+        const pythonError = response.error || response.stderr || '';
+        
+        // Store result in node.data.output
+        pythonNode.data = { 
+          ...pythonNode.data, 
+          output: pythonOutput,
+          lastError: pythonError || undefined,
+        };
+        
+        // Store in results map for downstream nodes
+        nodeResults.set(pythonNode.id, pythonOutput);
+        
+        useExecutionStore.getState().setLogExecution([
+          ...useExecutionStore.getState().logExecution,
+          `[executeWorkflow] Python node ${pythonNode.id} completed: ${pythonOutput.slice(0, 100)}`
+        ]);
+        
+        console.log(`[executeWorkflow] Python node ${pythonNode.id} completed, output: ${pythonOutput.slice(0, 100)}`);
+
+        // Find connected Output nodes
+        const outputEdges = edges.filter((e) => {
+          if (e.source !== pythonNode.id) return false;
+          const targetNode = nodes.find((n) => n.id === e.target);
+          return targetNode?.type === 'output';
+        });
+
+        // Update connected Output nodes
+        for (const outputEdge of outputEdges) {
+          outputUpdates.set(outputEdge.target, pythonOutput);
+        }
+
+        // Notify incrementally
+        try {
+          options?.onNodeDone?.({
+            node: pythonNode,
+            response: pythonOutput,
+            outputTargetIds: outputEdges.map(e => e.target),
+          });
+        } catch (e) {
+          console.warn('[executeWorkflow] onNodeDone callback threw:', e);
+        }
+
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        pythonNode.data = { 
+          ...pythonNode.data, 
+          lastError: errorMsg,
+        };
+        useExecutionStore.getState().setLogExecution([
+          ...useExecutionStore.getState().logExecution,
+          `[executeWorkflow] Python node ${pythonNode.id} error: ${errorMsg}`
+        ]);
+        console.error(`[executeWorkflow] Python node ${pythonNode.id} failed:`, error);
+      }
+    }
+  }
+
   // Find all Ollama nodes
   const ollamaNodes = nodes.filter((n) => n.type === 'ollama');
-  if (ollamaNodes.length === 0) {
-    throw new Error('No Ollama node found in workflow');
-    useExecutionStore.getState().setLogExecution([...useExecutionStore.getState().logExecution, '[executeWorkflow] No Ollama node found in workflow'])
+  if (ollamaNodes.length === 0 && pythonNodes.length === 0) {
+    throw new Error('No executable node found in workflow (need Ollama or Python nodes)');
+    useExecutionStore.getState().setLogExecution([...useExecutionStore.getState().logExecution, '[executeWorkflow] No executable node found in workflow'])
   }
 
   // Get execution order (topological sort)
   const executionOrder = getOllamaExecutionOrder(nodes, edges);
-
-  // Store results of each Ollama node
-  const nodeResults = new Map<string, string>();
-  // Store which Output nodes should be updated with which Ollama results
-  const outputUpdates = new Map<string, string>(); // outputNodeId -> ollamaResponse
 
   // Execute each Ollama node in order
   for (const ollamaNode of executionOrder) {
@@ -267,16 +409,27 @@ export async function executeWorkflow(
     }
   }
 
-  // Get final response from last Ollama node (for backward compatibility)
-  const lastOllamaNode = executionOrder[executionOrder.length - 1];
-  const finalResponse = nodeResults.get(lastOllamaNode.id) || '';
+  // Get final response from last executed node (Ollama or Python, for backward compatibility)
+  let finalResponse = '';
+  let lastNodeId: string | undefined;
+  
+  if (executionOrder.length > 0) {
+    const lastOllamaNode = executionOrder[executionOrder.length - 1];
+    finalResponse = nodeResults.get(lastOllamaNode.id) || '';
+    lastNodeId = lastOllamaNode.id;
+  } else if (pythonNodes.length > 0) {
+    // If no Ollama nodes, use last Python node
+    const lastPythonNode = pythonExecutionOrder[pythonExecutionOrder.length - 1];
+    finalResponse = nodeResults.get(lastPythonNode.id) || '';
+    lastNodeId = lastPythonNode.id;
+  }
 
   // Get first output node ID (for backward compatibility)
   const firstOutputNodeId = Array.from(outputUpdates.keys())[0];
 
   useExecutionStore.getState().setLogExecution([
     ...useExecutionStore.getState().logExecution,
-    `[executeWorkflow] Finalized. last node: ${lastOllamaNode?.id}, finalResponseLength: ${finalResponse.length}`
+    `[executeWorkflow] Finalized. last node: ${lastNodeId || 'none'}, finalResponseLength: ${finalResponse.length}`
   ])
   console.log('[executeWorkflow] Final results:', {
     outputUpdatesCount: outputUpdates.size,

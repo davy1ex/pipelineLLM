@@ -34,8 +34,12 @@ export async function runWorkflow({ nodes, edges, updateNodeData, getCurrentNode
       defaultUrl,
       defaultModel,
       onNodeDone: ({ node, response, outputTargetIds }) => {
-        // Update Ollama node with its own response right away
-        updateNodeData(node.id, { lastResponse: response })
+        // Update node with its own response right away
+        if (node.type === 'ollama') {
+          updateNodeData(node.id, { lastResponse: response });
+        } else if (node.type === 'python') {
+          updateNodeData(node.id, { output: response });
+        }
 
         // Update connected Output nodes immediately
         for (const targetId of outputTargetIds) {

@@ -145,6 +145,79 @@ def ollama_chat():
             'error': f'Internal server error: {str(e)}'
         }), 500
 
+@app.route('/api/python/execute', methods=['POST'])
+def python_execute():
+    """
+    Execute Python code and return the result
+    Request body: {
+        "code": "output = 'Hello'\nprint('World')"
+    }
+    Returns: {
+        "output": "Hello",  # Value of 'output' variable, if present
+        "stdout": "World\n",  # Captured stdout
+        "stderr": "",  # Captured stderr
+        "error": null  # Execution error if any
+    }
+    """
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'Request body is required'}), 400
+
+        code = data.get('code', '')
+        if not code:
+            return jsonify({'error': 'Code is required'}), 400
+
+        logger.info(f'Executing Python code (length: {len(code)})')
+
+        # Capture stdout, stderr, and try to extract 'output' variable
+        import io
+        import sys
+        from contextlib import redirect_stdout, redirect_stderr
+        
+        stdout_capture = io.StringIO()
+        stderr_capture = io.StringIO()
+        output_var = None
+        error = None
+
+        try:
+            # Create a namespace for the code execution
+            namespace = {}
+            
+            # Redirect stdout and stderr
+            with redirect_stdout(stdout_capture), redirect_stderr(stderr_capture):
+                exec(code, namespace)
+            
+            # Try to extract 'output' variable if it exists
+            if 'output' in namespace:
+                output_var = str(namespace['output'])
+            
+            stdout_value = stdout_capture.getvalue()
+            stderr_value = stderr_capture.getvalue()
+            
+        except Exception as e:
+            error = str(e)
+            stderr_value = stderr_capture.getvalue() + (f'\nExecution error: {error}' if error else '')
+            logger.error(f'Python execution error: {error}')
+
+        logger.info(f'Python execution completed. output={output_var is not None}, stdout_length={len(stdout_capture.getvalue())}, error={error is not None}')
+
+        return jsonify({
+            'output': output_var or '',
+            'stdout': stdout_capture.getvalue(),
+            'stderr': stderr_value,
+            'error': error,
+        }), 200
+
+    except Exception as e:
+        logger.error(f'Unexpected error in python_execute: {str(e)}', exc_info=True)
+        return jsonify({
+            'error': f'Internal server error: {str(e)}',
+            'output': '',
+            'stdout': '',
+            'stderr': '',
+        }), 500
+
 if __name__ == '__main__':
     # Port 5000 inside container, mapped to 5001 on host
     app.run(host='0.0.0.0', port=5000, debug=True)
