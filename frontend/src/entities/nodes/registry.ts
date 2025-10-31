@@ -4,6 +4,7 @@ import { ollamaMockTemplate } from './ollama/template';
 import { settingsTemplate } from './settings/template';
 import { outputTemplate } from './output/template';
 import { pythonTemplate } from './python/template';
+import { fileWriterTemplate } from './file-writer/template';
 
 export const uiNodeTemplates: NodeTemplate[] = [
   textInputTemplate,
@@ -11,6 +12,7 @@ export const uiNodeTemplates: NodeTemplate[] = [
   settingsTemplate,
   outputTemplate,
   pythonTemplate,
+  fileWriterTemplate,
 ];
 
 
