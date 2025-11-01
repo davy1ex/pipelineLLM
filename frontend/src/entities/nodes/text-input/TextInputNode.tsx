@@ -27,11 +27,10 @@ export const TextInputNode = ({ id, data, type }: NodeProps) => {
       connectors={[
         { id: 'output', type: 'source', position: Position.Right, label: 'output', dataType: 'string' },
       ]}
-      controls={[
-        { key: 'value', label: 'value', value: localValue, placeholder: 'Enter text...' },
-      ]}
+      controls={[]}
     >
       <textarea
+        className="nodrag nowheel"
         value={localValue}
         onChange={(e) => updateValue(e.target.value)}
         placeholder="Enter text..."
