@@ -1,7 +1,8 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import { useExecutionStore } from '../../features/workflow-execution/model/executionStore'
 import { getDataTypeColor, getDataTypeConfig, type DataType } from '../lib/dataTypes'
 import { Handle, type Position } from '@xyflow/react'
+import { NodeActionsContext } from '../../features/canvas/ui/NodeActionsContext'
 // Handles are not rendered here to avoid layout conflicts with ReactFlow absolute positioning.
 
 type ConnectorConfig = {
@@ -35,6 +36,7 @@ type NodeShellProps = {
   }>
   children?: React.ReactNode
   width?: number
+  height?: number
   outerRef?: React.Ref<HTMLDivElement>
 }
 
@@ -46,6 +48,8 @@ export const NodeShell: React.FC<NodeShellProps> = ({
   connectorRowRefs,
   controls = [],
   children,
+  width,
+  height,
   outerRef,
 }) => {
   const runningIds = useExecutionStore((s) => s.runningNodeIds)
@@ -54,20 +58,108 @@ export const NodeShell: React.FC<NodeShellProps> = ({
   const isCompleted = nodeId ? completedIds.includes(nodeId) : false
   const borderColor = isRunning ? '#60a5fa' : isCompleted ? '#34d399' : '#e5e7eb'
   const glow = isRunning ? '0 0 0 2px rgba(59,130,246,0.15)' : '0 1px 3px rgba(0,0,0,0.06)'
+  
+  // Resize logic - safely get node actions context
+  const nodeActionsContext = useContext(NodeActionsContext)
+  const nodeActions = nodeActionsContext && nodeId ? nodeActionsContext : null
+  
+  const [size, setSize] = React.useState<{ width: number; height: number | undefined }>(() => ({
+    width: width ?? 500,
+    height: height,
+  }))
+  
+  React.useEffect(() => {
+    if (typeof width === 'number') setSize(s => ({ ...s, width }))
+    if (typeof height === 'number') setSize(s => ({ ...s, height }))
+  }, [width, height])
+  
+  const resRef = React.useRef<{ 
+    active: boolean
+    mode: 'right' | 'bottom' | 'corner' | null
+    sx: number
+    sy: number
+    sw: number
+    sh: number
+    finalWidth?: number
+    finalHeight?: number
+  }>({ 
+    active: false, 
+    mode: null, 
+    sx: 0, 
+    sy: 0, 
+    sw: size.width, 
+    sh: typeof size.height === 'number' ? size.height : 0 
+  })
+  
+  const startResize = (e: React.MouseEvent, mode: 'right' | 'bottom' | 'corner') => {
+    e.preventDefault()
+    e.stopPropagation()
+    const currentHeight = typeof size.height === 'number' ? size.height : (outerRef && 'current' in outerRef && outerRef.current ? outerRef.current.offsetHeight : 200)
+    resRef.current = { 
+      active: true, 
+      mode, 
+      sx: e.clientX, 
+      sy: e.clientY, 
+      sw: size.width, 
+      sh: currentHeight 
+    }
+    document.body.style.userSelect = 'none'
+  }
+  
+  React.useEffect(() => {
+    const onMove = (e: MouseEvent) => {
+      const r = resRef.current
+      if (!r.active) return
+      let w = r.sw
+      let h = r.sh
+      if (r.mode === 'right' || r.mode === 'corner') w = Math.max(240, r.sw + (e.clientX - r.sx))
+      if (r.mode === 'bottom' || r.mode === 'corner') h = Math.max(100, r.sh + (e.clientY - r.sy))
+      resRef.current.finalWidth = w
+      resRef.current.finalHeight = h
+      setSize({ width: w, height: h })
+    }
+    
+    const onUp = () => {
+      const r = resRef.current
+      if (!r.active) return
+      const finalW = r.finalWidth ?? r.sw
+      const finalH = r.finalHeight ?? r.sh
+      r.active = false
+      r.finalWidth = undefined
+      r.finalHeight = undefined
+      document.body.style.userSelect = ''
+      if (nodeId && nodeActions) {
+        nodeActions.updateNodeData(nodeId, { width: finalW, height: finalH })
+      }
+    }
+    
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+    return () => {
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+  }, [nodeId, nodeActions, size.width, size.height])
+  
+  const containerStyle: React.CSSProperties = {
+    width: size.width,
+    ...(typeof size.height === 'number' ? { height: size.height } : {}),
+    background: 'white',
+    border: `1px solid ${borderColor}`,
+    borderRadius: 8,
+    boxShadow: glow,
+    position: 'relative',
+    boxSizing: 'border-box',
+    overflow: 'hidden',
+    textAlign: 'left',
+    display: 'flex',
+    flexDirection: 'column',
+  }
+  
   return (
     <div
       className="node-shell"
-      style={{
-        width: 500,
-        background: 'white',
-        border: `1px solid ${borderColor}`,
-        borderRadius: 8,
-        boxShadow: glow,
-        position: 'relative',
-        boxSizing: 'border-box',
-        overflow: 'hidden',
-        textAlign: 'left',
-      }}
+      style={containerStyle}
       ref={outerRef as any}
     >
       {isRunning && (
@@ -144,7 +236,56 @@ export const NodeShell: React.FC<NodeShellProps> = ({
       {controls.length > 0 && <ControlsList controls={controls} />}
 
       {/* body */}
-      <div style={{ padding: 12 }}>{children}</div>
+      <div style={{ padding: 12, flex: 1, overflow: 'auto' }}>{children}</div>
+      
+      {/* Resize handles */}
+      {nodeId && (
+        <>
+          {/* Corner resize handle */}
+          <div
+            className="nodrag"
+            onMouseDown={(e) => startResize(e, 'corner')}
+            style={{
+              position: 'absolute',
+              right: 0,
+              bottom: 0,
+              width: 16,
+              height: 16,
+              cursor: 'nwse-resize',
+              background: 'linear-gradient(-45deg, transparent 40%, #cbd5e1 40%, #cbd5e1 45%, transparent 45%, transparent 55%, #cbd5e1 55%, #cbd5e1 60%, transparent 60%)',
+              zIndex: 10,
+            }}
+          />
+          {/* Right edge resize handle */}
+          <div
+            className="nodrag"
+            onMouseDown={(e) => startResize(e, 'right')}
+            style={{
+              position: 'absolute',
+              right: 0,
+              top: 0,
+              bottom: 0,
+              width: 4,
+              cursor: 'ew-resize',
+              zIndex: 9,
+            }}
+          />
+          {/* Bottom edge resize handle */}
+          <div
+            className="nodrag"
+            onMouseDown={(e) => startResize(e, 'bottom')}
+            style={{
+              position: 'absolute',
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 4,
+              cursor: 'ns-resize',
+              zIndex: 9,
+            }}
+          />
+        </>
+      )}
     </div>
   )
 }
