@@ -17,6 +17,8 @@ export const fileWriterTemplate: NodeTemplate = {
     data: {
       label: '💾 Save To File',
       filename: 'result.txt',
+      width: 400,
+      height: 80,
     },
   }),
 }

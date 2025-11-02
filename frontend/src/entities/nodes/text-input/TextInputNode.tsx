@@ -28,6 +28,10 @@ export const TextInputNode = ({ id, data, type }: NodeProps) => {
         { id: 'output', type: 'source', position: Position.Right, label: 'output', dataType: 'string' },
       ]}
       controls={[]}
+      width={(data as any)?.width}
+      height={(data as any)?.height}
+      defaultWidth={400}
+      defaultHeight={120}
     >
       <textarea
         className="nodrag nowheel"
@@ -36,7 +40,7 @@ export const TextInputNode = ({ id, data, type }: NodeProps) => {
         placeholder="Enter text..."
         style={{
           width: '100%',
-          height: 80,
+          height: '100%',
           fontSize: 12,
           padding: 8,
           border: '1px solid #e5e7eb',

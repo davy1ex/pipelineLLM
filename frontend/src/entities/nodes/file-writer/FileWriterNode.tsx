@@ -33,9 +33,18 @@ export const FileWriterNode = ({ id, data }: NodeProps) => {
   ]
 
   return (
-    <NodeShell nodeId={id as string} title={label} connectors={[
-      { id: 'input', type: 'target', position: Position.Left, label: 'input', dataType: 'string' },
-    ]} controls={controls}>
+    <NodeShell 
+      nodeId={id as string} 
+      title={label} 
+      width={(data as any)?.width}
+      height={(data as any)?.height}
+      defaultWidth={400}
+      defaultHeight={50}
+      connectors={[
+        { id: 'input', type: 'target', position: Position.Left, label: 'input', dataType: 'string' },
+      ]} 
+      controls={controls}
+    >
       <div style={{ display: 'flex', gap: 8 }}>
         <button onClick={handleCreate} style={{ fontSize: 11, padding: '6px 10px', borderRadius: 6, border: '1px solid #cbd5e1', background: '#f8fafc', cursor: inputValue ? 'pointer' : 'not-allowed' }} disabled={!inputValue}>Create file</button>
         {(localFileId || fileId) && (

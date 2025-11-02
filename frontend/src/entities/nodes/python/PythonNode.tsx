@@ -36,6 +36,10 @@ export const PythonNode = ({ id, data }: NodeProps) => {
     <NodeShell
       nodeId={id as string}
       title={label}
+      width={(data as any)?.width}
+      height={(data as any)?.height}
+      defaultWidth={500}
+      defaultHeight={280}
       connectors={[
         { id: 'input', type: 'target', position: Position.Left, label: 'input', dataType: 'string' },
         { id: 'output', type: 'source', position: Position.Right, label: 'output', dataType: 'string' },
@@ -48,7 +52,7 @@ export const PythonNode = ({ id, data }: NodeProps) => {
         placeholder="# Enter Python code...\n# Use 'data_input' to read from connected node (via 'input' connector):\n# data_input contains the string from the source node\noutput = f'Received: {data_input}'\n# Or: output = data_input.upper()"
         style={{
           width: '100%',
-          minHeight: 120,
+          height: '100%',
           fontSize: 12,
           fontFamily: 'monospace',
           padding: 8,

@@ -19,6 +19,8 @@ export const pythonTemplate: NodeTemplate = {
       label: '🐍 Python',
       code: '# Enter Python code\n# Use data_input to read from connected node (via input connector)\noutput = data_input if data_input else "No input"',
       output: '',
+      width: 500,
+      height: 180,
     },
   }),
 };

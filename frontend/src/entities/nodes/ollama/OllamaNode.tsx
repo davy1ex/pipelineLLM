@@ -2,7 +2,7 @@ import { Position, type NodeProps } from '@xyflow/react';
 import { useNodeActions } from '../../../features/canvas/ui/NodeActionsContext';
 import { NodeShell } from '../../../shared/ui/NodeShell';
 
-export const OllamaNode = ({ id, data, type }: NodeProps) => {
+export const OllamaNode = ({ id, data }: NodeProps) => {
   const { getIncomingData, updateNodeData } = useNodeActions();
   const nodeData = (data as any) || {};
   const label: string = nodeData.label ?? 'Ollama';
@@ -49,6 +49,10 @@ export const OllamaNode = ({ id, data, type }: NodeProps) => {
         ]
       }
       controls={controls}
+      width={nodeData.width}
+      height={nodeData.height}
+      defaultWidth={155}
+      defaultHeight={200}
     >
       <div style={{ fontSize: 12, color: '#6b7280', fontStyle: 'italic' }}>Mock: no backend call</div>
     </NodeShell>

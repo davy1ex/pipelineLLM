@@ -5,7 +5,7 @@ export const textInputTemplate: NodeTemplate = {
   label: '📝 Text Input',
   type: 'textInput',
   color: '#4CAF50',
-  buildData: () => ({ label: '📝 Text Input', value: '' }),
+  buildData: () => ({ label: '📝 Text Input', value: '', width: 400, height: 120 }),
   buildPosition: () => ({ x: Math.random() * 600 + 50, y: 200 }),
 };
 

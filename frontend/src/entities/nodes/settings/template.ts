@@ -5,7 +5,7 @@ export const settingsTemplate: NodeTemplate = {
   label: '⚙️ Settings',
   type: 'settings',
   color: '#607D8B',
-  buildData: () => ({ label: '⚙️ Settings', url: 'http://localhost:11434', model: 'llama3.2' }),
+  buildData: () => ({ label: '⚙️ Settings', url: 'http://localhost:11434', model: 'llama3.2', width: 250, height: 90 }),
   buildPosition: () => ({ x: Math.random() * 600 + 20, y: 140 }),
 };
 

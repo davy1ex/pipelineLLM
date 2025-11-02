@@ -37,6 +37,8 @@ type NodeShellProps = {
   children?: React.ReactNode
   width?: number
   height?: number
+  defaultWidth?: number
+  defaultHeight?: number
   outerRef?: React.Ref<HTMLDivElement>
 }
 
@@ -50,6 +52,8 @@ export const NodeShell: React.FC<NodeShellProps> = ({
   children,
   width,
   height,
+  defaultWidth = 500,
+  defaultHeight,
   outerRef,
 }) => {
   const runningIds = useExecutionStore((s) => s.runningNodeIds)
@@ -63,15 +67,12 @@ export const NodeShell: React.FC<NodeShellProps> = ({
   const nodeActionsContext = useContext(NodeActionsContext)
   const nodeActions = nodeActionsContext && nodeId ? nodeActionsContext : null
   
-  const [size, setSize] = React.useState<{ width: number; height: number | undefined }>(() => ({
-    width: width ?? 500,
-    height: height,
-  }))
+  // State only for resize drag, use props directly for display
+  const [resizeWidth, setResizeWidth] = React.useState<number | null>(null)
+  const [resizeHeight, setResizeHeight] = React.useState<number | null>(null)
   
-  React.useEffect(() => {
-    if (typeof width === 'number') setSize(s => ({ ...s, width }))
-    if (typeof height === 'number') setSize(s => ({ ...s, height }))
-  }, [width, height])
+  const displayWidth = resizeWidth ?? width ?? defaultWidth
+  const displayHeight = resizeHeight ?? height ?? defaultHeight
   
   const resRef = React.useRef<{ 
     active: boolean
@@ -80,33 +81,39 @@ export const NodeShell: React.FC<NodeShellProps> = ({
     sy: number
     sw: number
     sh: number
-    finalWidth?: number
-    finalHeight?: number
+    finalW?: number
+    finalH?: number
   }>({ 
     active: false, 
     mode: null, 
     sx: 0, 
     sy: 0, 
-    sw: size.width, 
-    sh: typeof size.height === 'number' ? size.height : 0 
+    sw: 0, 
+    sh: 0 
   })
   
   const startResize = (e: React.MouseEvent, mode: 'right' | 'bottom' | 'corner') => {
     e.preventDefault()
     e.stopPropagation()
-    const currentHeight = typeof size.height === 'number' ? size.height : (outerRef && 'current' in outerRef && outerRef.current ? outerRef.current.offsetHeight : 200)
+    // Get current dimensions from DOM or state
+    const currentWidth = resizeWidth ?? width ?? defaultWidth
+    const currentHeight = resizeHeight ?? height ?? defaultHeight ?? (outerRef && 'current' in outerRef && outerRef.current ? outerRef.current.offsetHeight : 200)
     resRef.current = { 
       active: true, 
       mode, 
       sx: e.clientX, 
       sy: e.clientY, 
-      sw: size.width, 
-      sh: currentHeight 
+      sw: currentWidth, 
+      sh: currentHeight,
+      finalW: undefined,
+      finalH: undefined
     }
     document.body.style.userSelect = 'none'
   }
   
   React.useEffect(() => {
+    if (!nodeActions) return
+    
     const onMove = (e: MouseEvent) => {
       const r = resRef.current
       if (!r.active) return
@@ -114,22 +121,28 @@ export const NodeShell: React.FC<NodeShellProps> = ({
       let h = r.sh
       if (r.mode === 'right' || r.mode === 'corner') w = Math.max(240, r.sw + (e.clientX - r.sx))
       if (r.mode === 'bottom' || r.mode === 'corner') h = Math.max(100, r.sh + (e.clientY - r.sy))
-      resRef.current.finalWidth = w
-      resRef.current.finalHeight = h
-      setSize({ width: w, height: h })
+      r.finalW = w
+      r.finalH = h
+      setResizeWidth(w)
+      setResizeHeight(h)
     }
     
     const onUp = () => {
       const r = resRef.current
       if (!r.active) return
-      const finalW = r.finalWidth ?? r.sw
-      const finalH = r.finalHeight ?? r.sh
+      const finalW = r.finalW ?? r.sw
+      const finalH = r.finalH ?? r.sh
       r.active = false
-      r.finalWidth = undefined
-      r.finalHeight = undefined
+      r.finalW = undefined
+      r.finalH = undefined
       document.body.style.userSelect = ''
       if (nodeId && nodeActions) {
         nodeActions.updateNodeData(nodeId, { width: finalW, height: finalH })
+        // Reset resize state after a small delay to allow node data update
+        setTimeout(() => {
+          setResizeWidth(null)
+          setResizeHeight(null)
+        }, 0)
       }
     }
     
@@ -139,11 +152,11 @@ export const NodeShell: React.FC<NodeShellProps> = ({
       window.removeEventListener('mousemove', onMove)
       window.removeEventListener('mouseup', onUp)
     }
-  }, [nodeId, nodeActions, size.width, size.height])
+  }, [nodeId, nodeActions])
   
   const containerStyle: React.CSSProperties = {
-    width: size.width,
-    ...(typeof size.height === 'number' ? { height: size.height } : {}),
+    width: `${displayWidth}px`,
+    ...(typeof displayHeight === 'number' ? { height: `${displayHeight*2}px` } : {}),
     background: 'white',
     border: `1px solid ${borderColor}`,
     borderRadius: 8,
@@ -203,20 +216,19 @@ export const NodeShell: React.FC<NodeShellProps> = ({
                         alignSelf: connector.type === 'target' ? 'flex-start' : 'flex-end', 
                         flexDirection: connector.type === 'target' ? 'row' : 'row-reverse', 
                         alignItems: 'flex-start', 
-                        justifyContent: 'center', gap: 8
                     }}>
                     <Handle {...connector} className="connector-handle" style={{ 
                         borderRadius: 4, 
-                        height: "20px",
+                        height: "10px",
                         margin: "auto 0",
-                        width: "30px", 
+                        width: "10px", 
                         backgroundColor: getDataTypeColor(connector.dataType || 'any'), 
                         border: `1px solid ${getDataTypeConfig(connector.dataType || 'any').borderColor}`,
                     }} />
                     <div className="connector-label" style={{ 
                         fontSize: 11, 
                         color: getDataTypeConfig(connector.dataType || 'any').color, 
-                        padding: '4px 6px', 
+                        padding: '2px', 
                         borderRadius: 4, 
                         background: getDataTypeConfig(connector.dataType || 'any').backgroundColor, 
                         border: `1px solid ${getDataTypeConfig(connector.dataType || 'any').borderColor}`,

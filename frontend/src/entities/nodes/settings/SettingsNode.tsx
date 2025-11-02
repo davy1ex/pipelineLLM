@@ -13,7 +13,12 @@ export const SettingsNode = ({ id, data }: NodeProps) => {
 
   return (
     <NodeShell
+      nodeId={id as string}
       title={label}
+      width={(data as any)?.width}
+      height={(data as any)?.height}
+      defaultWidth={175}
+      defaultHeight={130}
       connectors={[
         { id: 'config', type: 'source', position: Position.Right, label: 'config', dataType: 'json' },
       ]}
