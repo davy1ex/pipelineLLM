@@ -2,10 +2,31 @@
 
 This document explains how execution starts, node ordering, data flow, and how to extend the engine (conditions/loops/new node types).
 
+**Note**: This document describes the current frontend-based execution. For future backend execution architecture, see [WORKFLOW_FORMAT.md](./WORKFLOW_FORMAT.md).
+
 ## Start
 - Entry point: `features/workflow-execution/lib/runWorkflow.ts`
 - Invocation: the page (`WorkFlowPage.tsx`) calls `runWorkflow({ nodes, edges, updateNodeData, ... })`
 - `runWorkflow` delegates to `executeWorkflow.ts` and subscribes to intermediate results via `onNodeDone`
+
+## Workflow JSON Format
+
+The workflow is stored and exported as JSON (see `features/canvas/lib/workflowIO.ts`). The format is **sufficient for backend execution**:
+
+```typescript
+interface WorkflowFile {
+  version: number;
+  nodes: Node[];     // Contains id, type, position, data
+  edges: Edge[];     // Contains id, source, target, sourceHandle, targetHandle
+  exportedAt?: string;
+}
+```
+
+**Key points**:
+- All execution data is in `node.data` (code for Python, value for TextInput, model/url for Ollama)
+- All connections are in `edges` with proper handle mapping
+- Backend can build dependency graph and execution order from this format
+- See [WORKFLOW_FORMAT.md](./WORKFLOW_FORMAT.md) for detailed format specification
 
 ## Data flow
 - Nodes read inputs from connected upstream sources.

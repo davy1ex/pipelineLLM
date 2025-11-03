@@ -1,0 +1,51 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "input-1",
+      "type": "textInput",
+      "position": { "x": 100, "y": 100 },
+      "data": {
+        "label": "📝 Text Input",
+        "value": "Hello World"
+      }
+    },
+    {
+      "id": "python-1",
+      "type": "python",
+      "position": { "x": 300, "y": 100 },
+      "data": {
+        "label": "🐍 Python",
+        "code": "# Simple uppercase\ndata_input = data_input if data_input else ''\noutput = data_input.upper()"
+      }
+    },
+    {
+      "id": "output-1",
+      "type": "output",
+      "position": { "x": 500, "y": 100 },
+      "data": {
+        "label": "📤 Output",
+        "text": ""
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1-2",
+      "source": "input-1",
+      "target": "python-1",
+      "sourceHandle": "output",
+      "targetHandle": "input",
+      "type": "step"
+    },
+    {
+      "id": "e2-3",
+      "source": "python-1",
+      "target": "output-1",
+      "sourceHandle": "output",
+      "targetHandle": "text",
+      "type": "step"
+    }
+  ]
+}
+

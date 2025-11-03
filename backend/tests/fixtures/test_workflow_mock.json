@@ -1,0 +1,70 @@
+{
+  "version": 1,
+  "nodes": [
+    {
+      "id": "settings-1",
+      "type": "settings",
+      "position": { "x": 50, "y": 140 },
+      "data": {
+        "label": "⚙️ Settings",
+        "url": "http://localhost:11434",
+        "model": "llama3.2",
+        "temperature": 0.7
+      }
+    },
+    {
+      "id": "input-1",
+      "type": "textInput",
+      "position": { "x": 100, "y": 240 },
+      "data": {
+        "label": "📝 Text Input",
+        "value": "Hello, tell me a short joke"
+      }
+    },
+    {
+      "id": "ollama-1",
+      "type": "ollama",
+      "position": { "x": 300, "y": 240 },
+      "data": {
+        "label": "🧪 Ollama",
+        "temperature": 0.7
+      }
+    },
+    {
+      "id": "output-1",
+      "type": "output",
+      "position": { "x": 560, "y": 240 },
+      "data": {
+        "label": "📤 Output",
+        "text": ""
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1-2",
+      "source": "input-1",
+      "target": "ollama-1",
+      "sourceHandle": "output",
+      "targetHandle": "prompt",
+      "type": "step"
+    },
+    {
+      "id": "e3-4",
+      "source": "settings-1",
+      "target": "ollama-1",
+      "sourceHandle": "config",
+      "targetHandle": "config",
+      "type": "step"
+    },
+    {
+      "id": "e2-5",
+      "source": "ollama-1",
+      "target": "output-1",
+      "sourceHandle": "output",
+      "targetHandle": "text",
+      "type": "step"
+    }
+  ]
+}
+
