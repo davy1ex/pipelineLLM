@@ -23,6 +23,29 @@ from executors.base import ExecutorResult
 logger = logging.getLogger(__name__)
 
 
+def _get_node_timeout(node_type: str, default_timeout: float = 300.0) -> float:
+    """
+    Get timeout for a specific node type.
+    
+    Some nodes (like docling) may need longer timeouts, especially in Docker
+    where GPU acceleration is not available.
+    
+    Args:
+        node_type: Node type string
+        default_timeout: Default timeout in seconds
+        
+    Returns:
+        Timeout in seconds for this node type
+    """
+    # Timeout overrides for specific node types
+    timeout_map = {
+        'docling': 600.0,  # 10 minutes - docling can be slow in Docker without GPU
+        'python': 300.0,
+        'ollama': 300.0,
+    }
+    return timeout_map.get(node_type, default_timeout)
+
+
 class ExecutionEngine:
     """Orchestrates workflow execution."""
     
@@ -282,6 +305,11 @@ class ExecutionEngine:
             self.failed_nodes.append(node_id)
             return result
         
+        # Get appropriate timeout for this node type
+        actual_timeout = _get_node_timeout(node_type, timeout_seconds)
+        if actual_timeout != timeout_seconds:
+            logger.debug(f'Node {node_id} ({node_type}): using extended timeout {actual_timeout}s (default: {timeout_seconds}s)')
+        
         # Check dependencies
         missing_deps = self._check_dependencies(node_id)
         if missing_deps:
@@ -304,12 +332,16 @@ class ExecutionEngine:
             return result
         
         # Execute with timeout
-        logger.info(f'Executing node {node_id} ({node_type}) [timeout: {timeout_seconds}s]')
+        logger.info(f'Executing node {node_id} ({node_type}) [timeout: {actual_timeout}s]')
         self.execution_log.append(f'Executing node {node_id} ({node_type})')
         
         try:
-            with self._timeout_context(timeout_seconds):
+            import time
+            start_time = time.time()
+            with self._timeout_context(actual_timeout):
                 result = executor(node, inputs)
+            elapsed_time = time.time() - start_time
+            logger.debug(f'Node {node_id} execution took {elapsed_time:.2f}s')
             
             self.results[node_id] = result
             
@@ -326,7 +358,7 @@ class ExecutionEngine:
             return result
             
         except TimeoutError as e:
-            error_msg = f'Execution timeout after {timeout_seconds}s'
+            error_msg = f'Execution timeout after {actual_timeout}s'
             logger.error(f'Node {node_id}: {error_msg}')
             self.execution_log.append(f'Node {node_id} timeout: {error_msg}')
             result = ExecutorResult(output='', error=error_msg)

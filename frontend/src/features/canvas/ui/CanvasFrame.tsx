@@ -10,7 +10,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useWorkflowStore } from '../model';
-import { TextInputNode, OllamaNode, SettingsNode, OutputNode, PythonNode, FileWriterNode } from '../../../entities/nodes';
+import { TextInputNode, OllamaNode, SettingsNode, OutputNode, PythonNode, FileWriterNode, DoclingNode } from '../../../entities/nodes';
 
 // Define nodeTypes outside component to avoid recreation on each render
 const LeftRightNode = ({ data }: NodeProps) => {
@@ -38,6 +38,7 @@ const nodeTypes: NodeTypes = {
   output: OutputNode,
   python: PythonNode,
   fileWriter: FileWriterNode,
+  docling: DoclingNode,
 };
 
 export const CanvasFrame = () => {

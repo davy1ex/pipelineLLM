@@ -61,9 +61,26 @@ python server.py
 
 Docker (frontend + backend + nginx)
 
+**Recommended: Use the start script with profiles**
+
+```bash
+# All services in Docker (CPU only, good for production)
+python start_services.py --profile docker
+
+# Backend runs locally (MPS/GPU available on Mac)
+python start_services.py --profile local
+
+# Only frontend/nginx in Docker, start backend manually
+python start_services.py --profile none
+```
+
+**Or use docker-compose directly:**
+
 ```bash
 docker compose -f docker/docker-compose.yml up --build
 ```
+
+**Note:** When using `--profile local`, the backend runs on your Mac with MPS/GPU support, which is much faster for Docling processing (16 seconds vs 125+ seconds on CPU).
 
 ---
 

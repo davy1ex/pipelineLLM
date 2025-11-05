@@ -29,7 +29,7 @@ export interface RunWorkflowBackendDeps {
 async function pollWorkflowStatus(
   queueId: string,
   onProgress: (status: WorkflowStatusResponse) => void,
-  pollInterval: number = 500,
+  pollInterval: number = 1500,  // Increased from 500ms to 1.5s to reduce server load
   maxDuration: number = 5 * 60 * 1000
 ): Promise<WorkflowStatusResponse> {
   const startTime = Date.now()
@@ -61,7 +61,7 @@ export async function runWorkflowBackend({
   updateNodeData,
   getCurrentNodes,
   verbose = true,
-  pollInterval = 500,
+  pollInterval = 1500,  // Increased from 500ms to 1.5s to reduce server load
   maxPollDuration = 5 * 60 * 1000,
 }: RunWorkflowBackendDeps): Promise<WorkflowStatusResponse> {
   if (verbose) {
@@ -149,6 +149,19 @@ export async function runWorkflowBackend({
                 updateNodeData(nodeId, { 
                   output: result.output,
                   error: result.error || undefined,
+                })
+              } else if (node.type === 'docling') {
+                // Check if file was not found - clear fileId/filename to force re-upload
+                // Note: metadata is spread into result by to_dict(), so check both places
+                const isFileNotFound = (result as any).fileNotFound || 
+                                      ((result as any).metadata && (result as any).metadata.fileNotFound) ||
+                                      (result.error && result.error.includes('File not found'))
+                
+                updateNodeData(nodeId, {
+                  output: result.output,
+                  error: result.error || undefined,
+                  // Clear fileId/filename if file not found to prompt re-upload
+                  ...(isFileNotFound ? { fileId: undefined, filename: undefined } : {}),
                 })
               } else {
                 // For other nodes, attach generic error if present

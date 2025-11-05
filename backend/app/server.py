@@ -32,6 +32,7 @@ app = Flask(__name__)
 # Configuration from environment variables
 app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-this')
 app.config['DEBUG'] = os.getenv('FLASK_DEBUG', '0') == '1'
+app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_UPLOAD_MB', '50')) * 1024 * 1024
 
 CORS(app)
 
@@ -41,10 +42,15 @@ logger = logging.getLogger(__name__)
 
 @app.before_request
 def log_request_info():
-    logger.info('Request: %s %s', request.method, request.path)
-    logger.info('Headers: %s', dict(request.headers))
-    if request.data:
-        logger.info('Body: %s', request.get_data())
+    # Skip verbose logging for status polling endpoints to reduce log spam
+    if request.path.startswith('/api/workflow/') and request.path.endswith('/status'):
+        # Only log status requests at DEBUG level
+        logger.debug('Request: %s %s', request.method, request.path)
+    else:
+        logger.info('Request: %s %s', request.method, request.path)
+        logger.info('Headers: %s', dict(request.headers))
+        if request.data:
+            logger.info('Body: %s', request.get_data())
 
 
 @app.route('/api/ollama/chat', methods=['POST'])
@@ -133,6 +139,31 @@ def create_file():
         return jsonify({ 'fileId': file_id, 'filename': safe_name, 'size': size }), 200
     except Exception as e:
         logger.error(f'Failed to create file: {str(e)}', exc_info=True)
+        return jsonify({ 'error': f'Internal server error: {str(e)}' }), 500
+
+@app.route('/api/files/upload', methods=['POST'])
+def upload_file():
+    try:
+        if 'file' not in request.files:
+            return jsonify({'error': 'No file part in the request'}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'error': 'No selected file'}), 400
+
+        base_dir = os.path.join('/tmp', 'pipeline_files')
+        os.makedirs(base_dir, exist_ok=True)
+        file_id = str(uuid.uuid4())
+        safe_name = file.filename.replace('/', '_').replace('..', '_')
+        file_path = os.path.join(base_dir, f"{file_id}__{safe_name}")
+
+        file.save(file_path)
+
+        size = os.path.getsize(file_path)
+        mimetype = file.mimetype or 'application/octet-stream'
+        return jsonify({ 'fileId': file_id, 'filename': safe_name, 'size': size, 'mimetype': mimetype }), 200
+    except Exception as e:
+        logger.error(f'Failed to upload file: {str(e)}', exc_info=True)
         return jsonify({ 'error': f'Internal server error: {str(e)}' }), 500
 
 @app.route('/api/files/download/<file_id>', methods=['GET'])
