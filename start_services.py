@@ -18,6 +18,7 @@ import sys
 import argparse
 import os
 import socket
+import platform
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.resolve()
@@ -78,14 +79,26 @@ def start_backend_local(force_port: int = None):
     print("Starting backend locally (MPS/GPU available)")
     print("="*60)
     
-    # Check if venv exists
-    venv_python = BACKEND_DIR / "venv" / "bin" / "python"
+    # Check if venv exists (Windows uses Scripts/, Unix uses bin/)
+    is_windows = platform.system() == 'Windows'
+    if is_windows:
+        venv_python = BACKEND_DIR / "venv" / "Scripts" / "python.exe"
+        activate_cmd = "venv\\Scripts\\activate"
+    else:
+        venv_python = BACKEND_DIR / "venv" / "bin" / "python"
+        activate_cmd = "source venv/bin/activate"
+    
     if not venv_python.exists():
         print("ERROR: Backend venv not found. Please create it first:")
         print(f"  cd {BACKEND_DIR}")
-        print("  python3 -m venv venv")
-        print("  source venv/bin/activate")
-        print("  pip install -r config/requirements.txt")
+        if is_windows:
+            print("  python -m venv venv")
+            print(f"  {activate_cmd}")
+            print("  python -m pip install -r config/requirements.txt")
+        else:
+            print("  python3 -m venv venv")
+            print(f"  {activate_cmd}")
+            print("  pip install -r config/requirements.txt")
         sys.exit(1)
     
     # Check if port is available
@@ -134,6 +147,13 @@ def profile_docker():
     print("\n" + "="*60)
     print("Profile: docker (all services in Docker, CPU only)")
     print("="*60)
+    
+    # Ensure frontend .env exists
+    frontend_env = PROJECT_ROOT / "frontend" / ".env"
+    if not frontend_env.exists():
+        print(f"Creating frontend/.env file...")
+        frontend_env.write_text("# Frontend environment variables\n", encoding='utf-8')
+    
     print("Starting all services in Docker...")
     start_docker_services(["frontend", "backend", "nginx"])
     print("\n✅ All services started in Docker")
@@ -147,6 +167,12 @@ def profile_local():
     print("\n" + "="*60)
     print("Profile: local (frontend/nginx in Docker, backend locally)")
     print("="*60)
+    
+    # Ensure frontend .env exists (docker-compose needs it)
+    frontend_env = PROJECT_ROOT / "frontend" / ".env"
+    if not frontend_env.exists():
+        print(f"Creating frontend/.env file...")
+        frontend_env.write_text("# Frontend environment variables\n", encoding='utf-8')
     
     # Stop and remove backend container if running
     print("Stopping and removing backend container (if running)...")
@@ -164,7 +190,11 @@ def profile_local():
         print("\n❌ ERROR: Port 5001 is already in use!")
         print("   Port 5001 is required for local backend (nginx expects it)")
         print("\n   To free port 5001, find and stop the process:")
-        print("   lsof -ti:5001 | xargs kill -9")
+        if platform.system() == 'Windows':
+            print("   Windows: netstat -ano | findstr :5001")
+            print("   Then: taskkill /PID <PID> /F")
+        else:
+            print("   lsof -ti:5001 | xargs kill -9")
         print("   # or")
         print("   docker stop backend_dev  # if it's the Docker backend")
         print("\n   Or use --profile docker to run everything in Docker")
@@ -196,6 +226,13 @@ def profile_none():
     print("\n" + "="*60)
     print("Profile: none (only frontend/nginx in Docker)")
     print("="*60)
+    
+    # Ensure frontend .env exists
+    frontend_env = PROJECT_ROOT / "frontend" / ".env"
+    if not frontend_env.exists():
+        print(f"Creating frontend/.env file...")
+        frontend_env.write_text("# Frontend environment variables\n", encoding='utf-8')
+    
     print("Starting frontend and nginx in Docker (without backend)...")
     start_docker_services(["frontend", "nginx"], skip_deps=True)
     
