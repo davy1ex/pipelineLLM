@@ -41,7 +41,7 @@ export const PythonNode = ({ id, data }: NodeProps) => {
       defaultWidth={500}
       defaultHeight={280}
       connectors={[
-        { id: 'input', type: 'target', position: Position.Left, label: 'input', dataType: 'string' },
+        { id: 'input', type: 'target', position: Position.Left, label: 'data_input', dataType: 'string' },
         { id: 'output', type: 'source', position: Position.Right, label: 'output', dataType: 'string' },
       ]}
       controls={controls}

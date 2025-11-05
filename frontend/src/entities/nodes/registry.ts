@@ -5,6 +5,7 @@ import { settingsTemplate } from './settings/template';
 import { outputTemplate } from './output/template';
 import { pythonTemplate } from './python/template';
 import { fileWriterTemplate } from './file-writer/template';
+import { doclingTemplate } from './docling/template';
 
 export const uiNodeTemplates: NodeTemplate[] = [
   textInputTemplate,
@@ -13,6 +14,7 @@ export const uiNodeTemplates: NodeTemplate[] = [
   outputTemplate,
   pythonTemplate,
   fileWriterTemplate,
+  doclingTemplate,
 ];
 
 

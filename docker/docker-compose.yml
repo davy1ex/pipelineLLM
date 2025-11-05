@@ -11,8 +11,7 @@ services:
       - "5173:5173"
     env_file:
       - ../frontend/.env
-    depends_on:
-      - backend
+    # Removed depends_on: backend - frontend can start without backend
     networks:
       - app-network
 
@@ -45,7 +44,7 @@ services:
       - "80:80"
     depends_on:
       - frontend
-      - backend
+    # Removed depends_on: backend - nginx can proxy to local backend via host.docker.internal
     networks:
       - app-network
 

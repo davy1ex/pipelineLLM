@@ -9,6 +9,7 @@ from executors.python_executor import execute_python
 from executors.text_input_executor import execute_text_input
 from executors.settings_executor import execute_settings
 from executors.filewriter_executor import execute_filewriter
+from executors.docling_executor import execute_docling
 
 # Registry mapping node type -> executor function
 _EXECUTOR_REGISTRY: Dict[str, Callable] = {
@@ -17,6 +18,7 @@ _EXECUTOR_REGISTRY: Dict[str, Callable] = {
     'textInput': execute_text_input,
     'settings': execute_settings,
     'fileWriter': execute_filewriter,
+    'docling': execute_docling,
 }
 
 
