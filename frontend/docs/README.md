@@ -1,148 +1,196 @@
-# Frontend Documentation
+# PipelineLLM Frontend Docs
 
-Documentation for PipelineLLM frontend architecture, patterns, and components.
+This directory documents the frontend of PipelineLLM – a ComfyUI‑inspired visual workflow builder for LLM pipelines using a node‑based canvas.
 
-## 📚 Documentation Index
-
-### [ARCHITECTURE.md](./ARCHITECTURE.md)
-Complete overview of frontend architecture:
-- **Feature-Sliced Design** methodology
-- Directory structure and layers
-- Component architecture
-- State management approach
-- TypeScript patterns
-- Performance optimization
-- Future architecture plans
-
-**Start here** if you're new to the project.
-
-### [WORKFLOW_FRAME.md](./WORKFLOW_FRAME.md)
-How the canvas renders and how to extend it:
-- WorkFlowFrame data flow and responsibilities
-- Registered node types (`textInput`, `ollama`, `settings`, `output`)
-- Edge policy (forced `step` on connect)
-- NodeShell-based nodes with `connectors` array
-- Step-by-step: add a new node type using `NodeShell`
-- Toolbar and demo initialization integration
-
-### [NODES_AND_EDGES.md](./NODES_AND_EDGES.md) 🆕
-Fundamental concepts of workflow construction:
-- What is a Node (structure, properties, examples)
-- What is an Edge (connections, types, styling)
-- How nodes and edges form a workflow
-- Workflow execution flow
-- How `systemPrompt` is resolved (edge first, then node data fallback)
-- Saving and loading workflows
-- Visual best practices
-- Common issues and solutions
-
-**Start here** to understand workflow basics.
-
-### [WORKFLOW_STORE.md](./WORKFLOW_STORE.md)
-Detailed documentation for `workflowStore` (Zustand):
-- Store structure and state
-- All actions and methods
-- ReactFlow handlers
-- Usage examples and patterns
-- Performance best practices
-- Common patterns (save/load, initialization)
-- Troubleshooting guide
-
-**Read this** to understand workflow state management.
-
-### [EXECUTION.md](./EXECUTION.md)
-Как запускается выполнение, порядок исполнения (Python → Ollama), правила входов/выходов, и как расширять двигатель (условия/циклы/новые узлы).
-
-### [PYTHON_NODE.md](./PYTHON_NODE.md)
-Подробно о PythonNode:
-- Как исполняется код
-- Что такое `input_data` и `output`
-- Как подключать новые библиотеки (requirements/Docker)
-
-### Node specifics (current)
-- TextInputNode: local input state prevents caret jump; right `output`
-- SettingsNode: emits `config` (url, model, temperature)
-- OllamaNode: `prompt`, `systemPrompt`, `config` inputs; incoming edges override local data; в исполнении приоритет у входящих
-- PythonNode: `input` → `output`, выполняет код на backend, результат берётся из переменной `output` (или stdout)
-- OutputNode: autosize на контент/expand, markdown wrap при ~1200px
-
-## 🎯 Quick Links
-
-### For New Developers
-1. Read [NODES_AND_EDGES.md](./NODES_AND_EDGES.md) - Understand workflow concepts ⭐
-2. Read [ARCHITECTURE.md](./ARCHITECTURE.md) - Understand the structure
-3. Read [WORKFLOW_STORE.md](./WORKFLOW_STORE.md) - Learn state management
-4. Check root [docs/FSD_STRUCTURE.md](../../docs/FSD_STRUCTURE.md) - FSD guidelines
-
-### For Feature Development
-1. Follow FSD structure in [ARCHITECTURE.md](./ARCHITECTURE.md)
-2. Use store patterns from [WORKFLOW_STORE.md](./WORKFLOW_STORE.md)
-3. Keep features isolated and self-contained
-
-### For Debugging
-1. Check [WORKFLOW_STORE.md](./WORKFLOW_STORE.md) - Troubleshooting section
-2. Use Redux DevTools for store inspection
-3. Check console for TypeScript errors
-
-## 🏗️ Architecture Overview
-
-```
-frontend/src/
-├── app/                    # Global setup
-├── pages/                  # Routing
-├── features/               # Business features ← Main development here
-│   └── workflow/
-│       ├── model/          # State & logic
-│       └── ui/             # Components
-├── widgets/                # Composite blocks (future)
-├── entities/               # Business entities (future)
-└── shared/                 # Utilities (future)
-```
-
-## 🔧 Key Technologies
-
-- **React 19** - UI library
-- **TypeScript** - Type safety
-- **Vite** - Build tool
-- **ReactFlow** - Node visualization
-- **Zustand** - State management
-
-## 📖 Additional Resources
-
-### Project Root Documentation
-- [../../docs/FSD_STRUCTURE.md](../../docs/FSD_STRUCTURE.md) - FSD guidelines
-- [../../docs/ARCHITECTURE.md](../../docs/ARCHITECTURE.md) - Overall architecture
-- [../../docs/MIGRATION_TO_FSD.md](../../docs/MIGRATION_TO_FSD.md) - Migration details
-- [../../TODO.md](../../TODO.md) - Development roadmap
-- [../../CHANGELOG.md](../../CHANGELOG.md) - Project changes
-
-### External Resources
-- [Feature-Sliced Design](https://feature-sliced.design/)
-- [ReactFlow Documentation](https://reactflow.dev/)
-- [Zustand Documentation](https://zustand-demo.pmnd.rs/)
-- [React 19 Documentation](https://react.dev/)
-- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
-
-## 🤝 Contributing
-
-When adding new features or components:
-
-1. **Follow FSD structure** - Put code in appropriate layer
-2. **Document store changes** - Update WORKFLOW_STORE.md if modifying state
-3. **Update architecture docs** - Add new patterns to ARCHITECTURE.md
-4. **Keep docs in sync** - Update this README if adding new docs
-
-## 📝 Documentation Conventions
-
-- Use **Markdown** for all documentation
-- Include **code examples** for complex concepts
-- Add **diagrams** where helpful (mermaid/ascii)
-- Keep examples **up-to-date** with actual code
-- Use **emojis** for visual navigation
-- Link to **relevant resources**
+Use this README as your entry point: it explains what the project is about, how it is structured, how the canvas and nodes work, how a workflow is executed (now backend‑driven), and how to add new functionality.
 
 ---
 
-**Last Updated**: October 30, 2025  
-**Maintainers**: Development Team
+## What is PipelineLLM?
+
+A visual editor to compose LLM pipelines from reusable nodes (Text Input, Settings, Ollama, Python, Output, File Writer, etc.). Users connect nodes on a canvas to define data flow; the workflow is executed on the backend, while the frontend visualizes progress and results.
+
+- UI: React + TypeScript + Vite
+- Canvas: ReactFlow (`@xyflow/react`)
+- State: Zustand
+- Execution: Backend‑driven (Flask). Frontend serializes nodes+edges and polls progress
+
+Key docs:
+- `ARCHITECTURE.md` – module‑level architecture and feature slices
+- `WORKFLOW_FORMAT.md` – workflow JSON format
+- `EXECUTION.md` – historical frontend execution notes (now superseded by backend execution)
+
+---
+
+## High‑Level Architecture
+
+Frontend responsibilities:
+- Provide canvas UX (create/edit/connect nodes)
+- Persist workflow locally (localStorage) and export/import as JSON
+- Send workflow JSON to backend to execute; poll progress and update the UI
+- Render per‑node state (running/completed, outputs, errors)
+
+Backend responsibilities:
+- Build graph, validate, determine topological order
+- Execute nodes, cache results, handle iterative passes and errors
+- Expose `/api/workflow/execute` (enqueue) and `/api/workflow/{queueId}/status` (progress)
+
+---
+
+## Canvas and Nodes
+
+The canvas is implemented with ReactFlow. Nodes are React components with a consistent outer shell and connector layout.
+
+- Canvas feature: `src/features/canvas`
+  - `model/workflowStore.ts` – Zustand store for nodes/edges, connect handlers, persistence
+  - `lib/workflowIO.ts` – export/import workflow JSON (ReactFlow format)
+  - `lib/workflowAdapter.ts` – adapters (if needed) for format transforms
+  - `ui/*` – canvas frame, property panel, toolbar
+
+- Node components: `src/entities/nodes/<type>`
+  - Each node renders using `shared/ui/NodeShell.tsx`
+  - Each node defines connectors (inputs/outputs) and controls (editable UI)
+  - Nodes read/write their `data` via the page‑level callbacks provided by `WorkFlowPage`
+
+- State persistence: `workflowStore` saves `{ nodes, edges }` to `localStorage` (debounced)
+  - `onConnect` and `onEdgesChange` colorize edges using data‑type palette
+  - Tests cover that edges persist across reloads and external imports
+
+---
+
+## Run Workflow (Backend‑Driven)
+
+Entry points:
+- `src/features/workflow-execution/lib/runWorkflow.ts` – thin wrapper for backward compatibility
+- `src/features/workflow-execution/lib/runWorkflowBackend.ts` – real client
+
+Flow:
+1. Collect current `nodes` and `edges` from store
+2. POST `/api/workflow/execute` with `{ nodes, edges }` → receive `queueId`
+3. Poll GET `/api/workflow/{queueId}/status` until `completed`/`failed`
+4. On progress updates:
+   - Update `executionStore` (`runningNodeIds`, `completedNodeIds`)
+   - Map backend `results` into node `data` (e.g., `ollama.lastResponse`, `python.output`)
+   - Log backend execution lines into `LogExecution` component
+   - Display node‑level errors (`data.error`) and status banners
+
+Configuration:
+- Default polling interval: 500ms (can be adjusted via `pollInterval`)
+- Max polling duration: 5 minutes (configurable)
+- Progress logging is appended with `[backend]` prefix
+
+Error handling:
+- Backend provides `hasErrors`, `failedNodes`, `stats`, and per‑node `error`
+- Frontend surfaces errors in logs and node `data`
+
+---
+
+## File Map (Frontend)
+
+- `src/pages/workflow/WorkFlowPage.tsx` – page that wires canvas, toolbar, and run button
+- `src/features/canvas/model/workflowStore.ts` – nodes/edges state and persistence
+- `src/shared/api/workflow.ts` – API client for `/execute` and `/status`
+- `src/features/workflow-execution/model/executionStore.ts` – UI execution state
+- `src/features/workflow-execution/ui/LogExecution.tsx` – execution log panel
+- `src/features/workflow-execution/lib/runWorkflowBackend.ts` – enqueue/poll logic
+- `src/shared/ui/NodeShell.tsx` – common node wrapper with connectors and controls
+
+---
+
+## Workflow JSON Format
+
+We use a ReactFlow‑style export for frontend storage and transport to backend. The backend expects:
+
+```json
+{
+  "version": 1,
+  "nodes": [...],
+  "edges": [...]
+}
+```
+
+See `WORKFLOW_FORMAT.md` for the complete formal spec and examples.
+
+---
+
+## Adding a New Node Type (Frontend)
+
+1. Create component under `src/entities/nodes/<your-node>` with a NodeShell wrapper
+   - Define connectors (inputs/outputs) and controls (editable fields)
+   - Update `entities/nodes/registry.ts` to register your node type
+2. Ensure `data` keys the backend needs are present (e.g., `prompt`, `model`)
+3. If the node produces an output string, use a conventional field name (e.g., `output`, `lastResponse`)
+4. Add any UI indicators in NodeShell (errors, status, previews)
+
+Minimal example:
+```tsx
+<NodeShell
+  nodeId={id}
+  title={label}
+  connectors={[
+    { id: 'input', type: 'target', position: Position.Left, label: 'input' },
+    { id: 'output', type: 'source', position: Position.Right, label: 'output' }
+  ]}
+  controls={[{ key: 'label', label: `Label: ${label}`, editable: true, value: label, onChange: v => updateNodeData(id, { label: v }) }]}
+/>
+```
+
+---
+
+## Adding a New Node Type (Backend)
+
+1. Implement executor: `backend/executors/<your>_executor.py`
+2. Register in `backend/executors/registry.py`
+3. Add input resolution in `backend/workflow/execution_engine.py.resolve_inputs`
+4. (Optional) Extend `WORKFLOW_FORMAT.md` if your node introduces new conventions
+
+---
+
+## How to Extend the Frontend
+
+- Add UI features under the relevant feature slice (`features/*`)
+- Keep side effects outside of components (use store/actions)
+- Prefer pure functions in utilities and selectors
+- Add tests:
+  - API client and execution orchestrator tests (Vitest)
+  - Store persistence tests (edges/nodes across reloads)
+
+Run tests:
+```bash
+npm run test
+```
+
+---
+
+## Development
+
+- Start dev server: `npm run dev`
+- Vite dev server with proxy for `/api/*` to backend (see `vite.config.ts`)
+- Recommended backend dev: `python -m app` (see backend README)
+
+---
+
+## Conventions
+
+- TypeScript: explicit types for public APIs; avoid `any`
+- State: keep minimal and serializable state in Zustand
+- Logs: use `LogExecution` for execution messages; prefix backend lines with `[backend]`
+- Errors: set `node.data.error` to show errors inline in nodes
+
+---
+
+## Troubleshooting
+
+- Seeing many `/status` requests? It’s normal polling until backend marks `completed`.
+  - Adjust `pollInterval` or enable early break on the backend when all nodes are successful.
+- Edges disappear after reload? Covered by tests; ensure `workflowStore.loadFromStorage()` is called on mount.
+- Ollama connection issues? Use Settings node URL. Backend normalizes `localhost` to `host.docker.internal` for Docker.
+
+---
+
+## See Also
+
+- `ARCHITECTURE.md` – deeper module‑level architecture and feature slices
+- `WORKFLOW_FORMAT.md` – complete schema and rules
+- Backend docs: `backend/README.md`, `backend/docs/README_EXECUTORS.md`
 
