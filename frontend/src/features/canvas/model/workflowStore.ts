@@ -97,9 +97,36 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   getViewportCenter: null,
 
   onNodesChange: (changes) => {
+    // Apply changes first
     const newNodes = applyNodeChanges(changes, get().nodes);
-    set({ nodes: newNodes });
-    saveToStorage(newNodes, get().edges);
+    
+    // Fix node.height to match displayed height (displayHeight*2 for NodeShell nodes)
+    // ReactFlow uses node.height for selection box, so it needs to match the actual displayed height
+    // Only update if data.height changed to avoid infinite loops
+    const updatedNodes = newNodes.map((node) => {
+      // Check if node uses NodeShell (most nodes do)
+      // NodeShell displays height as displayHeight*2, but node.height is stored as displayHeight
+      // We need to update node.height to match the displayed height for proper selection box
+      if (node.data && typeof (node.data as any).height === 'number') {
+        const dataHeight = (node.data as any).height;
+        const expectedHeight = dataHeight * 2;
+        // Only update if height doesn't match (avoid infinite loops)
+        if (node.height !== expectedHeight) {
+          return { ...node, height: expectedHeight };
+        }
+      }
+      return node;
+    });
+    
+    // Only update if there were actual changes to avoid infinite loops
+    const hasChanges = updatedNodes.some((node, idx) => node.height !== newNodes[idx]?.height);
+    if (hasChanges) {
+      set({ nodes: updatedNodes });
+      saveToStorage(updatedNodes, get().edges);
+    } else {
+      set({ nodes: newNodes });
+      saveToStorage(newNodes, get().edges);
+    }
   },
 
   onEdgesChange: (changes) => {

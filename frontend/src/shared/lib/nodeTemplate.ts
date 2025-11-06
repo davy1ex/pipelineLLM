@@ -93,7 +93,9 @@ export function buildNodeFromTemplates(
     node.width = (nodeData as any).width;
   }
   if (typeof (nodeData as any)?.height === 'number') {
-    node.height = (nodeData as any).height;
+    // NodeShell displays height as height*2, so we need to set node.height to height*2
+    // for ReactFlow to correctly calculate selection box size
+    node.height = (nodeData as any).height * 2;
   }
   
   console.log('[nodeTemplate] node created:', {

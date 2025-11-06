@@ -5,14 +5,16 @@ import {
   ReactFlow,
   Handle,
   Position,
+  SelectionMode,
   type NodeTypes,
   type NodeProps,
   useReactFlow,
+  PanOnScrollMode,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useWorkflowStore } from '../model';
 import { TextInputNode, OllamaNode, SettingsNode, OutputNode, PythonNode, FileWriterNode, DoclingNode } from '../../../entities/nodes';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 // Define nodeTypes outside component to avoid recreation on each render
 const LeftRightNode = ({ data }: NodeProps) => {
@@ -104,6 +106,99 @@ const ViewportCenterProvider = () => {
   return null;
 };
 
+// Component to handle shift+scroll for zoom
+const ZoomOnShiftScroll = () => {
+  const { zoomIn, zoomOut } = useReactFlow();
+
+  useEffect(() => {
+    const handleWheel = (event: WheelEvent) => {
+      // Only handle zoom when shift is pressed
+      if (event.shiftKey) {
+        const reactFlowElement = document.querySelector('.react-flow');
+        if (reactFlowElement && event.target instanceof Node && reactFlowElement.contains(event.target)) {
+          event.preventDefault();
+          event.stopPropagation();
+          
+          // Zoom based on scroll direction
+          if (event.deltaY > 0) {
+            zoomOut();
+          } else {
+            zoomIn();
+          }
+        }
+      }
+    };
+
+    window.addEventListener('wheel', handleWheel, { passive: false });
+    return () => {
+      window.removeEventListener('wheel', handleWheel);
+    };
+  }, [zoomIn, zoomOut]);
+
+  return null;
+};
+
+// Component to handle pan on drag with middle/right mouse button
+const PanOnMiddleRightDrag = () => {
+  const { getViewport, setViewport } = useReactFlow();
+  const [isPanning, setIsPanning] = useState(false);
+  const [lastPosition, setLastPosition] = useState<{ x: number; y: number } | null>(null);
+
+  useEffect(() => {
+    const handleMouseDown = (event: MouseEvent) => {
+      // Only handle middle (1) or right (2) mouse button
+      if (event.button === 1 || event.button === 2) {
+        const reactFlowElement = document.querySelector('.react-flow');
+        if (reactFlowElement && reactFlowElement.contains(event.target as Node)) {
+          event.preventDefault();
+          setIsPanning(true);
+          setLastPosition({ x: event.clientX, y: event.clientY });
+        }
+      }
+    };
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (isPanning && lastPosition) {
+        const viewport = getViewport();
+        const deltaX = event.clientX - lastPosition.x;
+        const deltaY = event.clientY - lastPosition.y;
+        
+        setViewport({
+          x: viewport.x - deltaX / viewport.zoom,
+          y: viewport.y - deltaY / viewport.zoom,
+          zoom: viewport.zoom
+        });
+        
+        setLastPosition({ x: event.clientX, y: event.clientY });
+      }
+    };
+
+    const handleMouseUp = () => {
+      setIsPanning(false);
+      setLastPosition(null);
+    };
+
+    window.addEventListener('mousedown', handleMouseDown);
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    // Prevent context menu on right click
+    window.addEventListener('contextmenu', (e) => {
+      const reactFlowElement = document.querySelector('.react-flow');
+      if (reactFlowElement && reactFlowElement.contains(e.target as Node)) {
+        e.preventDefault();
+      }
+    });
+
+    return () => {
+      window.removeEventListener('mousedown', handleMouseDown);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isPanning, lastPosition, getViewport, setViewport]);
+
+  return null;
+};
+
 export const CanvasFrame = () => {
   const nodes = useWorkflowStore((state) => state.nodes);
   const edges = useWorkflowStore((state) => state.edges);
@@ -121,6 +216,27 @@ export const CanvasFrame = () => {
         onConnect={onConnect}
         nodeTypes={nodeTypes}
         fitView
+        // Selection box for multi-select (drag with left mouse button on empty area)
+        selectionMode={SelectionMode.Full}
+        // Enable lasso/area selection by dragging on empty pane
+        // @ts-ignore - selectionOnDrag may not be in types but exists in runtime
+        selectionOnDrag={true}
+        // Pan on scroll: use scroll wheel for panning (both vertical and horizontal)
+        panOnScroll={true}
+        panOnScrollMode={PanOnScrollMode.Free}
+        // Pan on drag: disable default pan on drag to allow selection box
+        // Use middle (1) or right (2) mouse button for panning instead
+        panOnDrag={false} // Disable pan on drag with left button to allow selection box
+        // Zoom: shift+scroll for zoom, pinch for zoom on trackpad
+        zoomOnScroll={false} // Disable zoom on scroll (use shift+scroll instead via ZoomOnShiftScroll component)
+        zoomOnPinch={true}
+        zoomOnDoubleClick={true}
+        // Allow selecting nodes when dragging selection box (not when dragging individual nodes)
+        // This should work with selectionMode.Full
+        selectNodesOnDrag={true}
+        // Enable node selection and dragging
+        nodesDraggable={true}
+        nodesConnectable={true}
         onMove={(_event, viewport) => {
           console.log('[CanvasFrame] onMove - viewport changed:', {
             x: viewport.x,
@@ -141,8 +257,20 @@ export const CanvasFrame = () => {
           const setViewport = useWorkflowStore.getState().setViewport;
           setViewport({ x: viewport.x, y: viewport.y, zoom: viewport.zoom });
         }}
+        onSelectionChange={(params) => {
+          console.log('[CanvasFrame] Selection changed:', {
+            nodes: params.nodes.map(n => n.id),
+            edges: params.edges.map(e => e.id),
+            count: params.nodes.length
+          });
+        }}
+        onPaneClick={() => {
+          console.log('[CanvasFrame] Pane clicked - clearing selection');
+        }}
       >
         <ViewportCenterProvider />
+        <ZoomOnShiftScroll />
+        <PanOnMiddleRightDrag />
         <Controls />
         <MiniMap />
         <Background gap={12} size={1} />
