@@ -7,12 +7,43 @@ export const Toolbar = () => {
   const addNode = useWorkflowStore((s) => s.addNode);
   const clearWorkflow = useWorkflowStore((s) => s.clearWorkflow);
   const nodes = useWorkflowStore((s) => s.nodes);
+  const getViewportCenter = useWorkflowStore((s) => s.getViewportCenter);
 
   const templatesCombined = [...uiNodeTemplates];
 
   const handleAddFromTemplate = (templateId: string) => {
-    const newNode = buildNodeFromTemplates(templatesCombined, templateId);
-    if (newNode) addNode(newNode as Node);
+    console.log('[Toolbar] ========== START: handleAddFromTemplate ==========');
+    console.log('[Toolbar] templateId:', templateId);
+    console.log('[Toolbar] getViewportCenter available:', !!getViewportCenter);
+    
+    // Get center of visible area using the function provided by ViewportCenterProvider
+    // This function uses screenToFlowPosition which correctly handles viewport and zoom
+    let centerPosition: { x: number; y: number } | undefined;
+    
+    if (getViewportCenter) {
+      centerPosition = getViewportCenter();
+      console.log('[Toolbar] centerPosition from getViewportCenter:', centerPosition);
+    } else {
+      console.warn('[Toolbar] getViewportCenter is not available yet (ReactFlow may not be initialized)');
+    }
+    
+    console.log('[Toolbar] calling buildNodeFromTemplates with centerPosition:', centerPosition);
+    const newNode = buildNodeFromTemplates(templatesCombined, templateId, centerPosition);
+    
+    if (newNode) {
+      console.log('[Toolbar] newNode created:', {
+        id: newNode.id,
+        type: newNode.type,
+        position: newNode.position,
+        'position.x': newNode.position.x,
+        'position.y': newNode.position.y
+      });
+      console.log('[Toolbar] calling addNode...');
+      addNode(newNode as Node);
+      console.log('[Toolbar] ========== END: handleAddFromTemplate ==========');
+    } else {
+      console.error('[Toolbar] newNode is null!');
+    }
   };
 
   return (

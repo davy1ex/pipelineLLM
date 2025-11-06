@@ -20,14 +20,24 @@ import { getNodeHandles } from '../../../shared/lib/nodeHandles';
 import { getDataTypeConfig, type DataType } from '../../../shared/lib/dataTypes';
 import { MarkerType } from '@xyflow/react';
 
+export interface Viewport {
+  x: number;
+  y: number;
+  zoom: number;
+}
+
 interface WorkflowState {
   nodes: Node[];
   edges: Edge[];
+  viewport: Viewport | null;
+  getViewportCenter: (() => { x: number; y: number } | null) | null;
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: OnConnect;
   setNodes: (nodes: Node[]) => void;
   setEdges: (edges: Edge[]) => void;
+  setViewport: (viewport: Viewport) => void;
+  setViewportCenterGetter: (getter: () => { x: number; y: number } | null) => void;
   addNode: (node: Node) => void;
   removeNode: (nodeId: string) => void;
   clearWorkflow: () => void;
@@ -83,6 +93,8 @@ function colorizeEdges(edges: Edge[], nodes: Node[]): Edge[] {
 export const useWorkflowStore = create<WorkflowState>((set, get) => ({
   nodes: initialState.nodes,
   edges: initialState.edges,
+  viewport: null,
+  getViewportCenter: null,
 
   onNodesChange: (changes) => {
     const newNodes = applyNodeChanges(changes, get().nodes);
@@ -117,6 +129,14 @@ export const useWorkflowStore = create<WorkflowState>((set, get) => ({
     const colored = colorizeEdges(edges, get().nodes);
     set({ edges: colored });
     saveToStorage(get().nodes, colored);
+  },
+
+  setViewport: (viewport) => {
+    set({ viewport });
+  },
+
+  setViewportCenterGetter: (getter) => {
+    set({ getViewportCenter: getter });
   },
 
   addNode: (node) => {
