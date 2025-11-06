@@ -50,7 +50,7 @@ export const LogExecution = ({ logExecution }: { logExecution: string[] }) => {
             style={{
                 position: 'absolute',
                 left: 10,
-                right: 10,
+                right: 250, // Leave space for MiniMap (typically ~200px wide + padding)
                 bottom: 10,
                 height,
                 background: 'white',
