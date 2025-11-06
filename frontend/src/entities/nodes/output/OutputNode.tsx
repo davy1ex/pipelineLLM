@@ -15,36 +15,57 @@ export const OutputNode = ({ id, data }: NodeProps) => {
     width: (data as any)?.width ?? 500,
     height: (data as any)?.height ?? 160,
   }));
+  // Store collapsed height to restore it on collapse (fixed at 140px)
+  const COLLAPSED_HEIGHT = 140;
   React.useEffect(() => {
+    // Don't update size from data if we're currently resizing
+    if (isResizingRef.current) return;
+    
     const w = (data as any)?.width;
     const h = (data as any)?.height;
     if (typeof w === 'number' || typeof h === 'number') {
       setSize((s) => ({ width: typeof w === 'number' ? w : s.width, height: typeof h === 'number' ? h : s.height }));
     }
   }, [data]);
-  const resRef = React.useRef<{ active: boolean; mode: 'right'|'bottom'|'corner'|null; sx: number; sy: number; sw: number; sh: number }>({ active: false, mode: null, sx: 0, sy: 0, sw: size.width, sh: size.height });
+  const resRef = React.useRef<{ active: boolean; mode: 'right'|'bottom'|'corner'|null; sx: number; sy: number; sw: number; sh: number; finalW?: number; finalH?: number }>({ active: false, mode: null, sx: 0, sy: 0, sw: size.width, sh: size.height });
+  const isResizingRef = React.useRef(false);
+  
   const startResize = (e: React.MouseEvent, mode: 'right'|'bottom'|'corner') => {
     e.preventDefault(); e.stopPropagation();
-    resRef.current = { active: true, mode, sx: e.clientX, sy: e.clientY, sw: size.width, sh: size.height };
+    isResizingRef.current = true;
+    resRef.current = { active: true, mode, sx: e.clientX, sy: e.clientY, sw: size.width, sh: size.height, finalW: undefined, finalH: undefined };
     document.body.style.userSelect = 'none';
   };
+  
   React.useEffect(() => {
     const onMove = (e: MouseEvent) => {
       const r = resRef.current; if (!r.active) return;
       let w = r.sw, h = r.sh;
       if (r.mode === 'right' || r.mode === 'corner') w = Math.max(240, r.sw + (e.clientX - r.sx));
       if (r.mode === 'bottom' || r.mode === 'corner') h = Math.max(100, r.sh + (e.clientY - r.sy));
+      r.finalW = w;
+      r.finalH = h;
       setSize({ width: w, height: h });
     };
     const onUp = () => {
       const r = resRef.current; if (!r.active) return;
-      r.active = false; document.body.style.userSelect = '';
-      updateNodeData(id as string, { width: size.width, height: size.height });
+      const finalW = r.finalW ?? r.sw;
+      const finalH = r.finalH ?? r.sh;
+      r.active = false;
+      r.finalW = undefined;
+      r.finalH = undefined;
+      document.body.style.userSelect = '';
+      // Update node data with final dimensions
+      updateNodeData(id as string, { width: finalW, height: finalH });
+      // Reset resizing flag after a short delay to allow data update to propagate
+      setTimeout(() => {
+        isResizingRef.current = false;
+      }, 100);
     };
     window.addEventListener('mousemove', onMove);
     window.addEventListener('mouseup', onUp);
     return () => { window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-  }, [id, size.width, size.height, updateNodeData]);
+  }, [id, updateNodeData]);
   
   // Priority: 1) data.text (updated from workflow execution), 2) incoming data from connected node
   const nodeText = (data as any)?.text || '';
@@ -76,15 +97,25 @@ export const OutputNode = ({ id, data }: NodeProps) => {
   const renderMarkdown = (src: string) => md.render(src || '');
 
   const handleExpand = () => {
-    setExpanded((v) => !v);
     if (!expanded) {
+      // Expanding: calculate desired size based on content
       const el = document.querySelector('.output-node-content');
-      if (!el) return;
+      if (!el) {
+        setExpanded(true);
+        return;
+      }
       const desiredWidth = Math.max(240, Math.min(1200, el.scrollWidth + 48));
       const desiredHeight = Math.max(100, Math.min(1600, el.scrollHeight));
       setSize({ width: desiredWidth, height: desiredHeight });
       updateNodeData(id as string, { width: desiredWidth, height: desiredHeight });
+      setExpanded(true);
       console.log('Expanded output node', { width: desiredWidth, height: desiredHeight });
+    } else {
+      // Collapsing: restore to collapsed height
+      setSize((s) => ({ ...s, height: COLLAPSED_HEIGHT }));
+      updateNodeData(id as string, { height: COLLAPSED_HEIGHT });
+      setExpanded(false);
+      console.log('Collapsed output node', { height: COLLAPSED_HEIGHT });
     }
   };
 
@@ -93,6 +124,8 @@ export const OutputNode = ({ id, data }: NodeProps) => {
       nodeId={id as string}
       title={label}
       width={size.width}
+      height={size.height}
+      disableResize={true}
       headerActions={
         <>
           <button onClick={handleExpand} style={{ fontSize: 11, padding: '4px 8px', borderRadius: 6, border: '1px solid #d1d5db', background: '#f9fafb', cursor: 'pointer' }}>{expanded ? 'Collapse' : 'Expand'}</button>
@@ -119,7 +152,7 @@ export const OutputNode = ({ id, data }: NodeProps) => {
           wordBreak: 'break-word',
           overflowWrap: 'anywhere',
           overflow: 'auto',
-          height: expanded ? size.height : Math.min(size.height, 140),
+          height: expanded ? size.height : COLLAPSED_HEIGHT,
           textAlign: 'left',
           userSelect: 'text', // Enable text selection
           WebkitUserSelect: 'text', // Safari support
@@ -130,10 +163,6 @@ export const OutputNode = ({ id, data }: NodeProps) => {
           // Only stop propagation if not selecting text (not a text selection drag)
           // Allow text selection by not preventing default on mousedown
           e.stopPropagation(); 
-        }}
-        onSelectStart={(e) => {
-          // Allow text selection to start
-          e.stopPropagation();
         }}
       >
         {renderMd ? (

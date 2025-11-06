@@ -40,6 +40,7 @@ type NodeShellProps = {
   defaultWidth?: number
   defaultHeight?: number
   outerRef?: React.Ref<HTMLDivElement>
+  disableResize?: boolean // Disable NodeShell's built-in resize handles
 }
 
 export const NodeShell: React.FC<NodeShellProps> = ({
@@ -55,6 +56,7 @@ export const NodeShell: React.FC<NodeShellProps> = ({
   defaultWidth = 500,
   defaultHeight,
   outerRef,
+  disableResize = false,
 }) => {
   const runningIds = useExecutionStore((s) => s.runningNodeIds)
   const completedIds = useExecutionStore((s) => s.completedNodeIds)
@@ -251,7 +253,7 @@ export const NodeShell: React.FC<NodeShellProps> = ({
       <div style={{ padding: 12, flex: 1, overflow: 'auto' }}>{children}</div>
       
       {/* Resize handles */}
-      {nodeId && (
+      {nodeId && !disableResize && (
         <>
           {/* Corner resize handle */}
           <div
