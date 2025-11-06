@@ -121,12 +121,31 @@ export const OutputNode = ({ id, data }: NodeProps) => {
           overflow: 'auto',
           height: expanded ? size.height : Math.min(size.height, 140),
           textAlign: 'left',
+          userSelect: 'text', // Enable text selection
+          WebkitUserSelect: 'text', // Safari support
+          cursor: 'text', // Show text cursor
         }}
         className="nodrag nowheel output-node-content"
-        onMouseDown={(e) => { e.stopPropagation(); }}
+        onMouseDown={(e) => { 
+          // Only stop propagation if not selecting text (not a text selection drag)
+          // Allow text selection by not preventing default on mousedown
+          e.stopPropagation(); 
+        }}
+        onSelectStart={(e) => {
+          // Allow text selection to start
+          e.stopPropagation();
+        }}
       >
         {renderMd ? (
-          <div style={{ textAlign: 'left' }} dangerouslySetInnerHTML={{ __html: renderMarkdown(text || '') }} />
+          <div 
+            style={{ 
+              textAlign: 'left',
+              userSelect: 'text',
+              WebkitUserSelect: 'text',
+              cursor: 'text',
+            }} 
+            dangerouslySetInnerHTML={{ __html: renderMarkdown(text || '') }} 
+          />
         ) : (
           <>{text || 'No content yet'}</>
         )}
