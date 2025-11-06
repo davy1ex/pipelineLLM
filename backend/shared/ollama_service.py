@@ -49,11 +49,24 @@ def call_ollama_api(
     except Exception:
         pass
     
-    # Convert localhost for Docker
-    if 'localhost' in url or '127.0.0.1' in url:
-        url = url.replace('localhost', 'host.docker.internal').replace('127.0.0.1', 'host.docker.internal')
-    elif 'docker.host.internal' in url:
-        url = url.replace('docker.host.internal', 'host.docker.internal')
+    # Convert localhost for Docker (only if running inside Docker)
+    # On Windows, host.docker.internal only works from inside Docker containers
+    # When running locally, use localhost/127.0.0.1 directly
+    is_docker = os.environ.get('DOCKER_CONTAINER') == '1'
+    if is_docker:
+        # Inside Docker: convert localhost to host.docker.internal to access host services
+        if 'localhost' in url or '127.0.0.1' in url:
+            url = url.replace('localhost', 'host.docker.internal').replace('127.0.0.1', 'host.docker.internal')
+        elif 'docker.host.internal' in url:
+            url = url.replace('docker.host.internal', 'host.docker.internal')
+    else:
+        # Running locally: convert host.docker.internal back to localhost
+        # This handles cases where user configured host.docker.internal in settings
+        if 'host.docker.internal' in url:
+            url = url.replace('host.docker.internal', 'localhost')
+        elif 'docker.host.internal' in url:
+            url = url.replace('docker.host.internal', 'localhost')
+    # If not in Docker, keep localhost/127.0.0.1 as-is (works on Windows/Mac/Linux)
     
     # Check prompt length and warn/truncate if too long
     # Ollama /api/generate can have issues with very long prompts (causing 502 errors)

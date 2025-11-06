@@ -9,6 +9,7 @@ import { LogExecution } from '../../features/workflow-execution'
 import { runWorkflow } from '../../features/workflow-execution/lib/runWorkflow'
 import { exportWorkflow, parseWorkflowFile } from '../../features/canvas/lib/workflowIO'
 import { useExecutionStore } from '../../features/workflow-execution/model/executionStore'
+import { WorkflowSelector, SaveWorkflowButton } from '../../widgets/workflow-selector'
 
 export const WorkFlowPage = () => {
     const setNodes = useWorkflowStore((state) => state.setNodes)
@@ -136,6 +137,18 @@ export const WorkFlowPage = () => {
                 <div style={{ position: 'relative', width: '100%', flex: 1, overflow: 'hidden' }}>
                     <CanvasFrame />
                     <Toolbar />
+                    <div style={{
+                        position: 'absolute',
+                        top: 10,
+                        right: 10,
+                        zIndex: 10,
+                        display: 'flex',
+                        gap: '10px',
+                        flexDirection: 'column',
+                    }}>
+                        <SaveWorkflowButton />
+                        <WorkflowSelector />
+                    </div>
                     {/* <PropertyPanel /> */}
                 </div>
             </NodeActionsProvider>
