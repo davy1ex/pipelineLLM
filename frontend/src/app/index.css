@@ -76,6 +76,9 @@ button:focus-visible {
 .react-flow__node-ollama {
   width: auto !important;
   border: none !important;
+  /* Allow node container to fit content height */
+  height: auto !important;
+  min-height: 0 !important;
 }
 
 .react-flow__attribution {
